@@ -1,28 +1,61 @@
-# level-codec
+# level-transcoder
 
-> Encode keys, values and range options, with built-in or custom encodings.
+**Encode data with built-in or custom encodings.** The (not yet official) successor to `level-codec`, that introduces "transcoders" to translate between encodings and internal data formats supported by a db. This allows a db to store keys and values in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of all known encodings.
 
 [![level badge][level-badge]](https://github.com/Level/awesome)
-[![npm](https://img.shields.io/npm/v/level-codec.svg?label=&logo=npm)](https://www.npmjs.com/package/level-codec)
-[![Node version](https://img.shields.io/node/v/level-codec.svg)](https://www.npmjs.com/package/level-codec)
-[![npm](https://img.shields.io/npm/dm/level-codec.svg?label=dl)](https://www.npmjs.com/package/level-codec)
-[![Test](https://github.com/Level/codec/actions/workflows/test.yml/badge.svg)](https://github.com/Level/codec/actions/workflows/test.yml)
-[![Coverage Status](https://codecov.io/gh/Level/codec/branch/master/graph/badge.svg)](https://codecov.io/gh/Level/codec)
-[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
-[![Backers on Open Collective](https://opencollective.com/level/backers/badge.svg?color=orange)](#backers)
-[![Sponsors on Open Collective](https://opencollective.com/level/sponsors/badge.svg?color=orange)](#sponsors)
+[![Standard](https://img.shields.io/badge/standard-informational?logo=javascript&logoColor=fff)](https://standardjs.com)
+[![Common Changelog](https://common-changelog.org/badge.svg)](https://common-changelog.org)
+[![Donate](https://img.shields.io/badge/donate-orange?logo=open-collective&logoColor=fff)](https://opencollective.com/level)
 
 ## Usage
 
-**If you are upgrading:** please see [`UPGRADING.md`](UPGRADING.md).
+**This is in POC stage.**
 
 ```js
-const Codec = require('level-codec')
-const codec = Codec({ keyEncoding: 'json' })
-const key = codec.encodeKey({ foo: 'bar' })
-console.log(key) // -> '{"foo":"bar"}'
-console.log(codec.decodeKey(key)) // -> { foo: 'bar' }
+const Transcoder = require('level-transcoder')
+
+// Create a transcoder, passing a desired format
+const transcoder1 = new Transcoder(['view'])
+const transcoder2 = new Transcoder(['buffer'])
+const transcoder3 = new Transcoder(['utf8'])
+
+// Uint8Array(3) [ 49, 50, 51 ]
+console.log(transcoder1.encoding('json').encode(123))
+
+// <Buffer 31 32 33>
+console.log(transcoder2.encoding('json').encode(123))
+
+// '123'
+console.log(transcoder3.encoding('json').encode(123))
 ```
+
+If given multiple formats (like how `leveldown` can work with both Buffer and strings), the best fitting format is chosen. Not by magic, just hardcoded logic because we don't have that many formats to deal with.
+
+For example, knowing that JSON is a UTF-8 string which matches the desired `utf8` format, the `json` encoding will return a string here:
+
+```js
+const transcoder4 = new Transcoder(['buffer', 'utf8'])
+
+// '123'
+console.log(transcoder4.encoding('json').encode(123))
+```
+
+In contrast, the `view` encoding doesn't match either `buffer` or `utf8` so data encoded by the `view` encoding gets transcoded into Buffers:
+
+```js
+// <Buffer 31 32 33>
+console.log(transcoder4.encoding('view').encode(Uint8Array.from([49, 50, 51])))
+```
+
+Copying of data is avoided where possible. That's true in the last example, because the underlying ArrayBuffer of the view can be passed to a Buffer constructor without a copy.
+
+Lastly, the encoding returned by `Transcoder#encoding()` has a `format` property to be used to forward key- and valueEncoding options to an underlying store. This way, both the public and private API's of a db will be encoding-aware (somewhere in the future).
+
+For example, on `leveldown` a call like `db.put(key, 123, { valueEncoding: 'json' })` will pass that value `123` through a `json` encoding that has a `format` of `utf8`, which is then forwarded as `db._put(key, '123', { valueEncoding: 'utf8' })`.
+
+---
+
+**_Rest of README is not yet updated._**
 
 ## API
 
@@ -125,19 +158,11 @@ See the [Contribution Guide](https://github.com/Level/community/blob/master/CONT
 
 ## Donate
 
-To sustain [`Level`](https://github.com/Level) and its activities, become a backer or sponsor on [Open Collective](https://opencollective.com/level). Your logo or avatar will be displayed on our 28+ [GitHub repositories](https://github.com/Level) and [npm](https://www.npmjs.com/) packages. 💖
-
-### Backers
-
-[![Open Collective backers](https://opencollective.com/level/backers.svg?width=890)](https://opencollective.com/level)
-
-### Sponsors
-
-[![Open Collective sponsors](https://opencollective.com/level/sponsors.svg?width=890)](https://opencollective.com/level)
+Support us with a monthly donation on [Open Collective](https://opencollective.com/level) and help us continue our work.
 
 ## License
 
-[MIT](LICENSE.md) © 2012-present [Contributors](CONTRIBUTORS.md).
+[MIT](LICENSE)
 
 [level-badge]: https://leveljs.org/img/badge.svg
 

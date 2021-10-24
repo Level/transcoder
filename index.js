@@ -1,109 +1,130 @@
 'use strict'
 
+const ModuleError = require('module-error')
 const encodings = require('./lib/encodings')
-const rangeOptions = new Set(['lt', 'gt', 'lte', 'gte'])
+const { Encoding } = require('./lib/encoding')
+const { BufferFormat, ViewFormat, UTF8Format, NativeFormat } = require('./lib/formats')
 
-module.exports = Codec
+const kFormats = Symbol('formats')
+const kEncodings = Symbol('encodings')
 
-function Codec (opts) {
-  if (!(this instanceof Codec)) {
-    return new Codec(opts)
-  }
-  this.opts = opts || {}
-  this.encodings = encodings
-}
+/** @template T */
+class Transcoder {
+  /**
+   * @param {Iterable<string>} formats
+   */
+  constructor (formats) {
+    /** @type {Map<string|Encoding<any, any, any>|EncodingOptions<any, any, any>, Encoding<any, any, any>>} */
+    this[kEncodings] = new Map()
+    this[kFormats] = new Set(formats)
 
-Codec.prototype._encoding = function (encoding) {
-  if (typeof encoding === 'string') encoding = encodings[encoding]
-  if (!encoding) encoding = encodings.id
-  return encoding
-}
-
-Codec.prototype._keyEncoding = function (opts, batchOpts) {
-  return this._encoding((batchOpts && batchOpts.keyEncoding) ||
-                        (opts && opts.keyEncoding) ||
-                        this.opts.keyEncoding)
-}
-
-Codec.prototype._valueEncoding = function (opts, batchOpts) {
-  return this._encoding((batchOpts && (batchOpts.valueEncoding || batchOpts.encoding)) ||
-                        (opts && (opts.valueEncoding || opts.encoding)) ||
-                        (this.opts.valueEncoding || this.opts.encoding))
-}
-
-Codec.prototype.encodeKey = function (key, opts, batchOpts) {
-  return this._keyEncoding(opts, batchOpts).encode(key)
-}
-
-Codec.prototype.encodeValue = function (value, opts, batchOpts) {
-  return this._valueEncoding(opts, batchOpts).encode(value)
-}
-
-Codec.prototype.decodeKey = function (key, opts) {
-  return this._keyEncoding(opts).decode(key)
-}
-
-Codec.prototype.decodeValue = function (value, opts) {
-  return this._valueEncoding(opts).decode(value)
-}
-
-Codec.prototype.encodeBatch = function (ops, opts) {
-  return ops.map((_op) => {
-    const op = {
-      type: _op.type,
-      key: this.encodeKey(_op.key, opts, _op)
-    }
-    if (this.keyAsBuffer(opts, _op)) op.keyEncoding = 'binary'
-    if (_op.prefix) op.prefix = _op.prefix
-    if ('value' in _op) {
-      op.value = this.encodeValue(_op.value, opts, _op)
-      if (this.valueAsBuffer(opts, _op)) op.valueEncoding = 'binary'
-    }
-    return op
-  })
-}
-
-Codec.prototype.encodeLtgt = function (ltgt) {
-  const ret = {}
-
-  for (const key of Object.keys(ltgt)) {
-    if (key === 'start' || key === 'end') {
-      throw new Error('Legacy range options ("start" and "end") have been removed')
-    }
-
-    ret[key] = rangeOptions.has(key)
-      ? this.encodeKey(ltgt[key], ltgt)
-      : ltgt[key]
-  }
-
-  return ret
-}
-
-Codec.prototype.createStreamDecoder = function (opts) {
-  if (opts.keys && opts.values) {
-    return (key, value) => {
-      return {
-        key: this.decodeKey(key, opts),
-        value: this.decodeValue(value, opts)
+    // Only support aliases in key- and valueEncoding options (where we already did)
+    for (const [alias, { type }] of Object.entries(aliases)) {
+      if (this[kFormats].has(alias)) {
+        throw new ModuleError(`The '${alias}' alias is not supported here; use '${type}' instead`, {
+          code: 'LEVEL_ENCODING_NOT_SUPPORTED'
+        })
       }
     }
-  } else if (opts.keys) {
-    return (key) => {
-      return this.decodeKey(key, opts)
+
+    // Register encodings (done early in order to populate types())
+    for (const k in encodings) {
+      try {
+        this.encoding(k)
+      } catch (err) {
+        if (err.code !== 'LEVEL_ENCODING_NOT_SUPPORTED') throw err
+      }
     }
-  } else if (opts.values) {
-    return (_, value) => {
-      return this.decodeValue(value, opts)
+  }
+
+  types () {
+    const types = new Set()
+
+    for (const encoding of this[kEncodings].values()) {
+      const type = encoding.type.split('+')[0]
+      if (type) types.add(type)
     }
-  } else {
-    return function () {}
+
+    return Array.from(types)
+  }
+
+  // TODO: document that we don't fallback to 'id' anymore if encoding is not found
+  /**
+   * @param {string|Encoding<any, any, any>|EncodingOptions<any, any, any>} encoding
+   * @returns {Encoding<any, T, any>}
+   */
+  encoding (encoding) {
+    let resolved = this[kEncodings].get(encoding)
+
+    if (resolved === undefined) {
+      if (typeof encoding === 'string' && encoding !== '') {
+        resolved = lookup[encoding]
+
+        if (!resolved) {
+          throw new ModuleError(
+            `Encoding '${encoding}' is not found`,
+            { code: 'LEVEL_ENCODING_NOT_FOUND' }
+          )
+        }
+      } else if (typeof encoding !== 'object' || encoding === null) {
+        throw new TypeError('Encoding must be a string or object')
+      } else if (encoding instanceof Encoding) {
+        resolved = encoding
+      } else if (encoding.format === 'view') {
+        resolved = new ViewFormat(encoding)
+      } else if (encoding.format === 'utf8' || encoding.buffer === false) {
+        resolved = new UTF8Format(encoding)
+      } else {
+        resolved = new BufferFormat(encoding)
+      }
+
+      const { type, idempotent, format } = resolved
+
+      if (this[kFormats].has(type)) {
+        // If idempotent, run data through it to normalize
+        if (!idempotent) resolved = new NativeFormat(type)
+      } else if (!this[kFormats].has(format)) {
+        if (this[kFormats].has('view')) {
+          resolved = resolved.transcode('view')
+        } else if (this[kFormats].has('buffer')) {
+          resolved = resolved.transcode('buffer')
+        } else {
+          throw new ModuleError(
+            `Encoding '${type}' or '${format}' is not supported`,
+            { code: 'LEVEL_ENCODING_NOT_SUPPORTED' }
+          )
+        }
+      }
+
+      for (const k of [encoding, type, resolved.type]) {
+        if (k) this[kEncodings].set(k, resolved)
+      }
+    }
+
+    return resolved
   }
 }
 
-Codec.prototype.keyAsBuffer = function (opts) {
-  return this._keyEncoding(opts).buffer
+module.exports = Transcoder
+
+/**
+ * @typedef {import('./lib/encoding').EncodingOptions<TIn,TFormat,TOut>} EncodingOptions
+ * @template TIn, TFormat, TOut
+ */
+
+/**
+ * @type {Object.<string, Encoding<any, any, any>>}
+ */
+const aliases = {
+  binary: encodings.buffer,
+  'utf-8': encodings.utf8,
+  none: encodings.id
 }
 
-Codec.prototype.valueAsBuffer = function (opts) {
-  return this._valueEncoding(opts).buffer
+/**
+ * @type {Object.<string, Encoding<any, any, any>>}
+ */
+const lookup = {
+  ...encodings,
+  ...aliases
 }
