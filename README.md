@@ -3,6 +3,8 @@
 **Encode data with built-in or custom encodings.** The (not yet official) successor to `level-codec`, that introduces "transcoders" to translate between encodings and internal data formats supported by a db. This allows a db to store keys and values in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of all known encodings.
 
 [![level badge][level-badge]](https://github.com/Level/awesome)
+[![Test](https://img.shields.io/github/workflow/status/Level/transcoder/Test?label=test)](https://github.com/Level/transcoder/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/Level/transcoder?label=&logo=codecov&logoColor=fff)](https://codecov.io/gh/Level/transcoder)
 [![Standard](https://img.shields.io/badge/standard-informational?logo=javascript&logoColor=fff)](https://standardjs.com)
 [![Common Changelog](https://common-changelog.org/badge.svg)](https://common-changelog.org)
 [![Donate](https://img.shields.io/badge/donate-orange?logo=open-collective&logoColor=fff)](https://opencollective.com/level)
@@ -150,7 +152,7 @@ The `type` string should be a unique name.
 
 ## Contributing
 
-[`Level/codec`](https://github.com/Level/codec) is an **OPEN Open Source Project**. This means that:
+[`Level/transcoder`](https://github.com/Level/transcoder) is an **OPEN Open Source Project**. This means that:
 
 > Individuals making significant and valuable contributions are given commit-access to the project to contribute as they see fit. This project is more like an open wiki than a standard guarded open source project.
 

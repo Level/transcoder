@@ -8,9 +8,10 @@ declare class Transcoder<T = any> {
   constructor (formats: Iterable<string>)
 
   /**
-   * Get the types of supported encodings, including transcoded encodings.
+   * Get the types of supported encodings.
+   * @param full Return fully qualified types with the formats of trancoded encodings (if any).
    */
-  types (): string[]
+  types (full?: boolean): string[]
 
   /**
    * Get the given encoding, creating a transcoder if necessary.

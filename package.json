@@ -6,7 +6,7 @@
   "main": "index.js",
   "types": "./index.d.ts",
   "scripts": {
-    "test": "ts-standard && tsc && standard && hallmark && nyc tape test/skip-*.js",
+    "test": "ts-standard && tsc && standard && hallmark && nyc tape test/*.js",
     "test-browsers-local": "airtap --coverage --verbose test/*.js",
     "coverage": "nyc report -r lcovonly",
     "hallmark": "hallmark --fix",

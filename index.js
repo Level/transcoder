@@ -14,6 +14,12 @@ class Transcoder {
    * @param {Iterable<string>} formats
    */
   constructor (formats) {
+    if (formats == null ||
+      typeof formats[Symbol.iterator] !== 'function' ||
+      typeof formats === 'string') {
+      throw new TypeError("The first argument 'formats' must be an Iterable")
+    }
+
     /** @type {Map<string|Encoding<any, any, any>|EncodingOptions<any, any, any>, Encoding<any, any, any>>} */
     this[kEncodings] = new Map()
     this[kFormats] = new Set(formats)
@@ -32,17 +38,20 @@ class Transcoder {
       try {
         this.encoding(k)
       } catch (err) {
+        /* istanbul ignore if: assertion */
         if (err.code !== 'LEVEL_ENCODING_NOT_SUPPORTED') throw err
       }
     }
   }
 
-  types () {
+  /**
+   * @param {boolean} [full]
+   */
+  types (full) {
     const types = new Set()
 
     for (const encoding of this[kEncodings].values()) {
-      const type = encoding.type.split('+')[0]
-      if (type) types.add(type)
+      types.add(full ? encoding.type : encoding.type.split('+')[0])
     }
 
     return Array.from(types)
@@ -67,7 +76,7 @@ class Transcoder {
           )
         }
       } else if (typeof encoding !== 'object' || encoding === null) {
-        throw new TypeError('Encoding must be a string or object')
+        throw new TypeError("First argument 'encoding' must be a string or object")
       } else if (encoding instanceof Encoding) {
         resolved = encoding
       } else if (encoding.format === 'view') {
@@ -89,15 +98,16 @@ class Transcoder {
         } else if (this[kFormats].has('buffer')) {
           resolved = resolved.transcode('buffer')
         } else {
+          // TODO: improve error message (see tests, it's inconsistent)
           throw new ModuleError(
-            `Encoding '${type}' or '${format}' is not supported`,
+            `Encoding '${type}' is not supported`,
             { code: 'LEVEL_ENCODING_NOT_SUPPORTED' }
           )
         }
       }
 
       for (const k of [encoding, type, resolved.type]) {
-        if (k) this[kEncodings].set(k, resolved)
+        this[kEncodings].set(k, resolved)
       }
     }
 
