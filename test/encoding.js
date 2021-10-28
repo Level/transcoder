@@ -35,20 +35,6 @@ test('Encoding() throws on invalid type or format option', function (t) {
   }
 })
 
-test('Encoding() throws on invalid idempotent option', function (t) {
-  t.plan(6 * 2)
-
-  for (const invalid of ['', 'true', null, {}, () => {}, []]) {
-    try {
-      // eslint-disable-next-line no-new
-      new Encoding({ idempotent: invalid })
-    } catch (err) {
-      t.is(err.name, 'TypeError', 'is a TypeError')
-      t.is(err.message, "The 'idempotent' option must be a boolean or undefined", 'correct message')
-    }
-  }
-})
-
 test('Encoding() sets format based on format option or legacy buffer option', function (t) {
   t.is(new Encoding({ buffer: true }).format, 'buffer')
   t.is(new Encoding({ buffer: false }).format, 'utf8')

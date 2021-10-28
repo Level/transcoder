@@ -2,6 +2,15 @@
 
 This document describes breaking changes and how to upgrade. For a complete list of changes including minor and patch releases, please refer to the [changelog](CHANGELOG.md).
 
+## Upcoming
+
+WIP notes, describing the differences from `level-codec`.
+
+- Throws error if encoding is not found, rather than falling back to `id` encoding
+- The `binary` encoding has been renamed to `buffer`, with `binary` as an alias
+- The `utf8` encoding will always return a string. It previously did not touch Buffers. Now it will call `buffer.toString('utf8')` for consistency. Consumers can (selectively) use the `buffer` or `view` encoding to avoid this conversion.
+- The `ascii`, `ucs2` and `utf16le` encodings are not supported.
+
 ## 10.0.0
 
 Legacy range options have been removed ([Level/community#86](https://github.com/Level/community/issues/86)). If you previously did:

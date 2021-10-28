@@ -3,7 +3,7 @@
 const ModuleError = require('module-error')
 const encodings = require('./lib/encodings')
 const { Encoding } = require('./lib/encoding')
-const { BufferFormat, ViewFormat, UTF8Format, NativeFormat } = require('./lib/formats')
+const { BufferFormat, ViewFormat, UTF8Format } = require('./lib/formats')
 
 const kFormats = Symbol('formats')
 const kEncodings = Symbol('encodings')
@@ -57,7 +57,6 @@ class Transcoder {
     return Array.from(types)
   }
 
-  // TODO: document that we don't fallback to 'id' anymore if encoding is not found
   /**
    * @param {string|Encoding<any, any, any>|EncodingOptions<any, any, any>} encoding
    * @returns {Encoding<any, T, any>}
@@ -87,22 +86,18 @@ class Transcoder {
         resolved = new BufferFormat(encoding)
       }
 
-      const { type, idempotent, format } = resolved
+      const { type, format } = resolved
 
-      if (this[kFormats].has(type)) {
-        // If idempotent, run data through it to normalize
-        if (!idempotent) resolved = new NativeFormat(type)
-      } else if (!this[kFormats].has(format)) {
+      if (!this[kFormats].has(format)) {
         if (this[kFormats].has('view')) {
           resolved = resolved.transcode('view')
         } else if (this[kFormats].has('buffer')) {
           resolved = resolved.transcode('buffer')
         } else {
           // TODO: improve error message (see tests, it's inconsistent)
-          throw new ModuleError(
-            `Encoding '${type}' is not supported`,
-            { code: 'LEVEL_ENCODING_NOT_SUPPORTED' }
-          )
+          throw new ModuleError(`Encoding '${type}' is not supported`, {
+            code: 'LEVEL_ENCODING_NOT_SUPPORTED'
+          })
         }
       }
 

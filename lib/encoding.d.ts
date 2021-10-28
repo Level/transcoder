@@ -58,12 +58,6 @@ export interface EncodingOptions<TIn, TFormat, TOut> {
   format?: string | undefined
 
   /**
-   * Whether {@link encode} and {@link decode} are idempotent
-   * functions, such that `f(x) == f(f(x))`.
-   */
-  idempotent?: boolean | undefined
-
-  /**
    * Legacy property that means the same as `format: 'buffer'`.
    * Used only when `format` is not provided.
    */

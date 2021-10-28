@@ -34,10 +34,6 @@ test('transcoder.types()', function (t) {
   t.same(transcoder.types(), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64'])
   t.same(transcoder.types(true), ['utf8+view', 'json+view', 'buffer+view', 'view', 'hex+view', 'base64+view'])
 
-  transcoder = new Transcoder(['json'])
-  t.same(transcoder.types(), ['json'])
-  t.same(transcoder.types(true), ['json+native'])
-
   transcoder = new Transcoder(['id'])
   t.same(transcoder.types(), ['id'])
   t.same(transcoder.types(true), ['id'])
@@ -217,9 +213,6 @@ test('transcoder.encoding() wraps custom anonymous encoding', function (t) {
     verify(e, false)
     t.is(e.format, 'buffer', 'ignores invalid legacy buffer option')
   }
-
-  verify(transcoder.encoding({ ...opts, idempotent: true }), true)
-  verify(transcoder.encoding({ ...opts, idempotent: false }), false)
 
   t.end()
 })
