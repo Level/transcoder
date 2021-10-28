@@ -182,11 +182,10 @@ test('transcoder.encoding() wraps custom anonymous encoding', function (t) {
   const transcoder = new Transcoder(['buffer', 'view', 'utf8'])
   const spy = (v) => v + 1
   const opts = { encode: spy, decode: spy }
-  const verify = (encoding, idempotent) => {
+  const verify = (encoding) => {
     t.is(encoding.encode(1), 2, 'has encode() function')
     t.is(encoding.decode(1), 2, 'has decode() function')
     t.ok(/^anonymous-\d+$/.test(encoding.type), 'is anonymous: ' + encoding.type)
-    t.is(encoding.idempotent, idempotent, 'idempotent: ' + idempotent)
     t.is(encoding.buffer, undefined, 'does not expose legacy buffer option')
   }
 
@@ -214,18 +213,5 @@ test('transcoder.encoding() wraps custom anonymous encoding', function (t) {
     t.is(e.format, 'buffer', 'ignores invalid legacy buffer option')
   }
 
-  t.end()
-})
-
-test('has idempotent properties', function (t) {
-  const transcoder = new Transcoder(['buffer', 'view', 'utf8', 'id'])
-
-  t.is(transcoder.encoding('buffer').idempotent, true)
-  t.is(transcoder.encoding('view').idempotent, true)
-  t.is(transcoder.encoding('utf8').idempotent, true)
-  t.is(transcoder.encoding('id').idempotent, true)
-  t.is(transcoder.encoding('json').idempotent, false)
-  t.is(transcoder.encoding('base64').idempotent, false)
-  t.is(transcoder.encoding('hex').idempotent, false)
   t.end()
 })

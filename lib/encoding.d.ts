@@ -16,14 +16,11 @@ export abstract class Encoding<TIn, TFormat, TOut> {
   /** Unique name for this encoding. */
   type: string
 
-  /** Format returned by {@link encode}. */
-  format: string
-
   /**
-   * Whether {@link encode} and {@link decode} are idempotent
-   * functions, such that `f(x) == f(f(x))`.
+   * Indicates the (lower-level) encoding used by the return value
+   * of {@link encode}. Typically one of 'buffer', 'view', 'utf8'.
    */
-  idempotent: boolean
+  format: string
 
   createViewTranscoder (): ViewFormat<TIn, TOut> | undefined
   createBufferTranscoder (): BufferFormat<TIn, TOut> | undefined
@@ -53,7 +50,8 @@ export interface EncodingOptions<TIn, TFormat, TOut> {
   type?: string | undefined
 
   /**
-   * Format returned by {@link encode}.
+   * Indicates the (lower-level) encoding used by the return value
+   * of {@link encode}. Typically one of 'buffer', 'view', 'utf8'.
    */
   format?: string | undefined
 
