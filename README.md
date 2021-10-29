@@ -1,6 +1,6 @@
 # level-transcoder
 
-**Encode data with built-in or custom encodings.** The (not yet official) successor to `level-codec`, that introduces "transcoders" to translate between encodings and internal data formats supported by a db. This allows a db to store keys and values in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of all known encodings.
+**Encode data with built-in or custom encodings.** The (not yet official) successor to [`level-codec`][level-codec] that introduces "transcoders" to translate between encodings and internal data formats supported by a db. This allows a db to store keys and values in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of all known encodings.
 
 [![level badge][level-badge]](https://github.com/Level/awesome)
 [![Test](https://img.shields.io/github/workflow/status/Level/transcoder/Test?label=test)](https://github.com/Level/transcoder/actions/workflows/test.yml)
@@ -10,8 +10,6 @@
 [![Donate](https://img.shields.io/badge/donate-orange?logo=open-collective&logoColor=fff)](https://opencollective.com/level)
 
 ## Usage
-
-**This is in POC stage.**
 
 ```js
 const Transcoder = require('level-transcoder')
@@ -31,7 +29,7 @@ console.log(transcoder2.encoding('json').encode(123))
 console.log(transcoder3.encoding('json').encode(123))
 ```
 
-If given multiple formats (like how `leveldown` can work with both Buffer and strings), the best fitting format is chosen. Not by magic, just hardcoded logic because we don't have that many formats to deal with.
+If given multiple formats (like how [`leveldown`][leveldown] can work with both Buffer and strings), the best fitting format is chosen. Not by magic, just hardcoded logic because we don't have that many formats to deal with.
 
 For example, knowing that JSON is a UTF-8 string which matches the desired `utf8` format, the `json` encoding will return a string here:
 
@@ -53,7 +51,29 @@ Copying of data is avoided where possible. That's true in the last example, beca
 
 Lastly, the encoding returned by `Transcoder#encoding()` has a `format` property to be used to forward key- and valueEncoding options to an underlying store. This way, both the public and private API's of a db will be encoding-aware (somewhere in the future).
 
-For example, on `leveldown` a call like `db.put(key, 123, { valueEncoding: 'json' })` will pass that value `123` through a `json` encoding that has a `format` of `utf8`, which is then forwarded as `db._put(key, '123', { valueEncoding: 'utf8' })`.
+For example, on `leveldown` a call like `db.put(key, { x: 3 }, { valueEncoding: 'json' })` will pass that value `{ x: 3 }` through a `json` encoding that has a `format` of `utf8`, which is then forwarded as `db._put(key, '{"x":3}', { valueEncoding: 'utf8' })`.
+
+## Compatible with
+
+Various modules in the ecosystem, in and outside of level, can be used with `level-transcoder`.
+
+| Module                                     | Format       | Interface                    | Named |
+|:-------------------------------------------|:-------------|:-----------------------------|:------|
+| [`protocol-buffers`][protocol-buffers]     | buffer       | `level-codec`                | ❌    |
+| [`charwise`][charwise]                     | utf8         | `level-codec`                | ✅    |
+| [`bytewise`][bytewise]                     | buffer       | `level-codec`                | ✅    |
+| [`lexicographic-integer-encoding`][lexint] | buffer, utf8 | `level-codec`                | ✅    |
+| [`codecs`][mafintosh-codecs]               | buffer       | `codecs`                     | ✅    |
+| [`abstract-encoding`][abstract-encoding]   | buffer       | `abstract-encoding`          | ❌    |
+| [`multiformats`][js-multiformats]          | view         | [`multiformats`][blockcodec] | ✅    |
+| [`base32-codecs`][base32-codecs]           | buffer       | `codecs`                     | ✅    |
+| [`level-codec`][level-codec]               | buffer, utf8 | `level-codec`                | ✅    |
+
+Common between the interfaces is that they have `encode()` and `decode()` methods. The terms "codec" and "encoding" are used interchangeably. Passing these encodings through `Transcoder#encoding()` (which is done implicitly when used in an `abstract-level` database) results in normalized encoding objects that follow [the interface](./lib/encoding.d.ts) of `level-transcoder`.
+
+If the format in the table above is buffer, then `encode()` is expected to return a Buffer. If utf8, then a string. If view, then a Uint8Array.
+
+Those marked as not named are modules that export or generate anonymous encodings that don't have a `name` property (or `type` as an alias) which means they can only be used as objects and not by name. Passing an anonymous encoding through `Transcoder#encoding()` does give it a `name` property for compatibility, but the value of `name` is not deterministic.
 
 ---
 
@@ -123,7 +143,7 @@ See below for a list and the format of `encoding`.
 | `hex`<br>`ascii`<br>`base64`<br>`ucs2`<br>`utf16le`<br>`utf-16le` | String or Buffer             | Buffer           | String    |
 | `none` a.k.a. `id`                                                | Any type (bypass encoding)   | Input\*          | As stored |
 
-<sup>\*</sup> Stores may have their own type coercion. Whether type information is preserved depends on the [`abstract-leveldown`] implementation as well as the underlying storage (`LevelDB`, `IndexedDB`, etc).
+<sup>\*</sup> Stores may have their own type coercion. Whether type information is preserved depends on the [`abstract-leveldown`][abstract-leveldown] implementation as well as the underlying storage (`LevelDB`, `IndexedDB`, etc).
 
 ## Encoding Format
 
@@ -146,7 +166,7 @@ All of these properties are required.
 
 The `buffer` boolean tells consumers whether to fetch data as a Buffer, before calling your `decode()` function on that data. If `buffer` is true, it is assumed that `decode()` takes a Buffer. If false, it is assumed that `decode` takes any other type (usually a string).
 
-To explain this in the grand scheme of things, consider a store like [`leveldown`] which has the ability to return either a Buffer or string, both sourced from the same byte array. Wrap this store with [`encoding-down`] and it'll select the most optimal data type based on the `buffer` property of the active encoding. If your `decode()` function needs a string (and the data can legitimately become a UTF8 string), you should set `buffer` to `false`. This avoids the cost of having to convert a Buffer to a string.
+To explain this in the grand scheme of things, consider a store like [`leveldown`][leveldown] which has the ability to return either a Buffer or string, both sourced from the same byte array. Wrap this store with [`encoding-down`][encoding-down] and it'll select the most optimal data type based on the `buffer` property of the active encoding. If your `decode()` function needs a string (and the data can legitimately become a UTF8 string), you should set `buffer` to `false`. This avoids the cost of having to convert a Buffer to a string.
 
 The `type` string should be a unique name.
 
@@ -168,8 +188,29 @@ Support us with a monthly donation on [Open Collective](https://opencollective.c
 
 [level-badge]: https://leveljs.org/img/badge.svg
 
-[`encoding-down`]: https://github.com/Level/encoding-down
+[level-codec]: https://github.com/Level/codec
 
-[`abstract-leveldown`]: https://github.com/Level/abstract-leveldown
+[encoding-down]: https://github.com/Level/encoding-down
 
-[`leveldown`]: https://github.com/Level/leveldown
+[abstract-leveldown]: https://github.com/Level/abstract-leveldown
+
+[leveldown]: https://github.com/Level/leveldown
+
+[protocol-buffers]: https://github.com/mafintosh/protocol-buffers
+
+[charwise]: https://github.com/dominictarr/charwise
+
+[bytewise]: https://github.com/deanlandolt/bytewise
+
+[lexint]: https://github.com/vweevers/lexicographic-integer-encoding
+
+[mafintosh-codecs]: https://github.com/mafintosh/codecs
+
+[abstract-encoding]: https://github.com/mafintosh/abstract-encoding
+
+[js-multiformats]: https://github.com/multiformats/js-multiformats
+
+[blockcodec]: https://github.com/multiformats/js-multiformats/blob/master/src/codecs/interface.ts
+
+[base32-codecs]: https://github.com/consento-org/base32-codecs
+

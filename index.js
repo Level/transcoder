@@ -25,15 +25,15 @@ class Transcoder {
     this[kFormats] = new Set(formats)
 
     // Only support aliases in key- and valueEncoding options (where we already did)
-    for (const [alias, { type }] of Object.entries(aliases)) {
+    for (const [alias, { name }] of Object.entries(aliases)) {
       if (this[kFormats].has(alias)) {
-        throw new ModuleError(`The '${alias}' alias is not supported here; use '${type}' instead`, {
+        throw new ModuleError(`The '${alias}' alias is not supported here; use '${name}' instead`, {
           code: 'LEVEL_ENCODING_NOT_SUPPORTED'
         })
       }
     }
 
-    // Register encodings (done early in order to populate types())
+    // Register encodings (done early in order to populate encodings())
     for (const k in encodings) {
       try {
         this.encoding(k)
@@ -45,16 +45,10 @@ class Transcoder {
   }
 
   /**
-   * @param {boolean} [full]
+   * @returns {Array<Encoding<any,T,any>>}
    */
-  types (full) {
-    const types = new Set()
-
-    for (const encoding of this[kEncodings].values()) {
-      types.add(full ? encoding.type : encoding.type.split('+')[0])
-    }
-
-    return Array.from(types)
+  encodings () {
+    return Array.from(new Set(this[kEncodings].values()))
   }
 
   /**
@@ -69,39 +63,33 @@ class Transcoder {
         resolved = lookup[encoding]
 
         if (!resolved) {
-          throw new ModuleError(
-            `Encoding '${encoding}' is not found`,
-            { code: 'LEVEL_ENCODING_NOT_FOUND' }
-          )
+          throw new ModuleError(`Encoding '${encoding}' is not found`, {
+            code: 'LEVEL_ENCODING_NOT_FOUND'
+          })
         }
       } else if (typeof encoding !== 'object' || encoding === null) {
         throw new TypeError("First argument 'encoding' must be a string or object")
       } else if (encoding instanceof Encoding) {
         resolved = encoding
-      } else if (encoding.format === 'view') {
-        resolved = new ViewFormat(encoding)
-      } else if (encoding.format === 'utf8' || encoding.buffer === false) {
-        resolved = new UTF8Format(encoding)
       } else {
-        resolved = new BufferFormat(encoding)
+        resolved = from(encoding)
       }
 
-      const { type, format } = resolved
+      const { name, format } = resolved
 
       if (!this[kFormats].has(format)) {
         if (this[kFormats].has('view')) {
-          resolved = resolved.transcode('view')
+          resolved = resolved.createViewTranscoder()
         } else if (this[kFormats].has('buffer')) {
-          resolved = resolved.transcode('buffer')
+          resolved = resolved.createBufferTranscoder()
         } else {
-          // TODO: improve error message (see tests, it's inconsistent)
-          throw new ModuleError(`Encoding '${type}' is not supported`, {
+          throw new ModuleError(`Encoding '${name}' is not supported`, {
             code: 'LEVEL_ENCODING_NOT_SUPPORTED'
           })
         }
       }
 
-      for (const k of [encoding, type, resolved.type]) {
+      for (const k of [encoding, name, resolved.name, resolved.commonName]) {
         this[kEncodings].set(k, resolved)
       }
     }
@@ -111,6 +99,43 @@ class Transcoder {
 }
 
 module.exports = Transcoder
+
+/**
+ * @param {EncodingOptions<any, any, any>} options
+ * @returns {Encoding<any, any, any>}
+ */
+function from (options) {
+  const format = detectFormat(options)
+
+  switch (format) {
+    case 'view': return new ViewFormat(options)
+    case 'utf8': return new UTF8Format(options)
+    case 'buffer': return new BufferFormat(options)
+    default: {
+      throw new ModuleError(`Encoding '${format}' is not supported`, {
+        code: 'LEVEL_ENCODING_NOT_SUPPORTED'
+      })
+    }
+  }
+}
+
+/**
+ * If format is not provided, fallback to detecting `level-codec`
+ * or `multiformats` encodings, else assume a format of buffer.
+ * @param {EncodingOptions<any, any, any>} options
+ * @returns {string}
+ */
+function detectFormat ({ format, buffer, code }) {
+  if (format !== undefined) {
+    return format
+  } else if (typeof buffer === 'boolean') {
+    return buffer ? 'buffer' : 'utf8' // level-codec
+  } else if (Number.isInteger(code)) {
+    return 'view' // multiformats
+  } else {
+    return 'buffer'
+  }
+}
 
 /**
  * @typedef {import('./lib/encoding').EncodingOptions<TIn,TFormat,TOut>} EncodingOptions

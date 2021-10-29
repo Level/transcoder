@@ -14,23 +14,30 @@ export abstract class Encoding<TIn, TFormat, TOut> {
   decode: (data: TFormat) => TOut
 
   /** Unique name for this encoding. */
-  type: string
+  name: string
 
   /**
-   * Indicates the (lower-level) encoding used by the return value
-   * of {@link encode}. Typically one of 'buffer', 'view', 'utf8'.
+   * Common name. If this encoding is a transcoder, {@link name} will be for
+   * example 'json+view' and {@link commonName} will be just 'json'. Else
+   * {@link name} will equal {@link commonName}.
+   */
+  get commonName (): string
+
+  /**
+   * The name of the (lower-level) encoding used by the return value of
+   * {@link encode}. Typically one of 'buffer', 'view', 'utf8'.
    */
   format: string
 
-  createViewTranscoder (): ViewFormat<TIn, TOut> | undefined
-  createBufferTranscoder (): BufferFormat<TIn, TOut> | undefined
+  /**
+   * Create a new encoding that transcodes {@link TFormat} to a view.
+   */
+  createViewTranscoder (): ViewFormat<TIn, TOut>
 
   /**
-   * Create a new encoding that transcodes from this to {@link format}.
-   * @param format What to encode to.
+   * Create a new encoding that transcodes {@link TFormat} to a buffer.
    */
-  transcode (format: 'view'): ViewFormat<TIn, TOut>
-  transcode (format: 'buffer'): BufferFormat<TIn, TOut>
+  createBufferTranscoder (): BufferFormat<TIn, TOut>
 }
 
 export interface EncodingOptions<TIn, TFormat, TOut> {
@@ -47,19 +54,35 @@ export interface EncodingOptions<TIn, TFormat, TOut> {
   /**
    * Unique name for this encoding.
    */
-  type?: string | undefined
+  name?: string | undefined
 
   /**
-   * Indicates the (lower-level) encoding used by the return value
-   * of {@link encode}. Typically one of 'buffer', 'view', 'utf8'.
+   * The name of the (lower-level) encoding used by the return value of
+   * {@link encode}. Typically one of 'buffer', 'view', 'utf8'. Defaults to
+   * 'buffer' if the {@link buffer} and {@link code} options are also undefined.
    */
   format?: string | undefined
 
   /**
-   * Legacy property that means the same as `format: 'buffer'`.
-   * Used only when `format` is not provided.
+   * Legacy `level-codec` option that means the same as `format: 'buffer'`
+   * if true or `format: 'utf8'` if false. Used only when the {@link format} option
+   * is undefined.
    */
   buffer?: boolean | undefined
+
+  /**
+   * Legacy `level-codec` alias for {@link name}. Used only when the
+   * {@link name} option is undefined.
+   */
+  type?: any
+
+  /**
+   * For compatibility with `multiformats`. If a number, then the encoding is
+   * assumed to have a {@link format} of 'view'. Used only when the {@link format}
+   * and {@link buffer} options are undefined.
+   * @see https://github.com/multiformats/js-multiformats/blob/master/src/codecs/interface.ts
+   */
+  code?: any
 
   createViewTranscoder?: (() => ViewFormat<TIn, TOut>) | undefined
   createBufferTranscoder?: (() => BufferFormat<TIn, TOut>) | undefined

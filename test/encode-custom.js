@@ -28,7 +28,7 @@ function createEncodingOptions (t, format) {
         return parseInt(data, 10) / 2
       }
     },
-    type: 'custom',
+    name: 'custom',
     format
   }
 }
@@ -57,7 +57,7 @@ test('encode custom (buffer)', function (t) {
 test('encode custom (utf8) +buffer', function (t) {
   const transcoder = new Transcoder(['buffer'])
   const encoding = transcoder.encoding(createEncodingOptions(t, 'utf8'))
-  t.is(encoding.type, 'custom+buffer')
+  t.is(encoding.name, 'custom+buffer')
   t.is(encoding.format, 'buffer')
   doublepass(t, encoding, 16, Buffer.from('32'))
   t.end()
@@ -66,7 +66,7 @@ test('encode custom (utf8) +buffer', function (t) {
 test('encode custom (view) +buffer', function (t) {
   const transcoder = new Transcoder(['buffer'])
   const encoding = transcoder.encoding(createEncodingOptions(t, 'view'))
-  t.is(encoding.type, 'custom+buffer')
+  t.is(encoding.name, 'custom+buffer')
   t.is(encoding.format, 'buffer')
   doublepass(t, encoding, 16, Buffer.from('32'))
   t.end()
@@ -82,7 +82,7 @@ test('encode custom (view)', function (t) {
 test('encode custom (utf8) +view', function (t) {
   const transcoder = new Transcoder(['view'])
   const encoding = transcoder.encoding(createEncodingOptions(t, 'utf8'))
-  t.is(encoding.type, 'custom+view')
+  t.is(encoding.name, 'custom+view')
   t.is(encoding.format, 'view')
   doublepass(t, encoding, 16, textEncoder.encode('32'))
   t.end()
@@ -91,7 +91,7 @@ test('encode custom (utf8) +view', function (t) {
 test('encode custom (buffer) +view', function (t) {
   const transcoder = new Transcoder(['view'])
   const encoding = transcoder.encoding(createEncodingOptions(t, 'buffer'))
-  t.is(encoding.type, 'custom+view')
+  t.is(encoding.name, 'custom+view')
   t.is(encoding.format, 'view')
   doublepass(t, encoding, 16, Buffer.from('32')) // Buffer is Uint8Array
   t.is(encoding.decode(textEncoder.encode('32')), 16)

@@ -17,35 +17,37 @@ test('Transcoder() throws if first argument is not iterable', function (t) {
   }
 })
 
-test('transcoder.types()', function (t) {
+test('transcoder.encodings()', function (t) {
+  const names = (encodings) => encodings.map(enc => enc.name)
+  const commonNames = (encodings) => encodings.map(enc => enc.commonName)
+
   let transcoder = new Transcoder([])
-  t.same(transcoder.types(), [])
-  t.same(transcoder.types(true), [])
+  t.same(transcoder.encodings(), [])
 
   transcoder = new Transcoder(['utf8'])
-  t.same(transcoder.types(), ['utf8', 'json'])
-  t.same(transcoder.types(true), ['utf8', 'json'])
+  t.same(commonNames(transcoder.encodings()), ['utf8', 'json'])
+  t.same(names(transcoder.encodings()), ['utf8', 'json'])
 
   transcoder = new Transcoder(['buffer'])
-  t.same(transcoder.types(), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64'])
-  t.same(transcoder.types(true), ['utf8+buffer', 'json+buffer', 'buffer', 'view+buffer', 'hex', 'base64'])
+  t.same(commonNames(transcoder.encodings()), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64'])
+  t.same(names(transcoder.encodings()), ['utf8+buffer', 'json+buffer', 'buffer', 'view+buffer', 'hex', 'base64'])
 
   transcoder = new Transcoder(['view'])
-  t.same(transcoder.types(), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64'])
-  t.same(transcoder.types(true), ['utf8+view', 'json+view', 'buffer+view', 'view', 'hex+view', 'base64+view'])
+  t.same(commonNames(transcoder.encodings()), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64'])
+  t.same(names(transcoder.encodings()), ['utf8+view', 'json+view', 'buffer+view', 'view', 'hex+view', 'base64+view'])
 
   transcoder = new Transcoder(['id'])
-  t.same(transcoder.types(), ['id'])
-  t.same(transcoder.types(true), ['id'])
+  t.same(commonNames(transcoder.encodings()), ['id'])
+  t.same(names(transcoder.encodings()), ['id'])
 
   transcoder = new Transcoder(['buffer'])
-  transcoder.encoding({ encode: (v) => v, decode: (v) => v, type: 'x', format: 'buffer' })
-  t.same(transcoder.types(), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64', 'x'])
-  t.same(transcoder.types(true), ['utf8+buffer', 'json+buffer', 'buffer', 'view+buffer', 'hex', 'base64', 'x'])
+  transcoder.encoding({ encode: (v) => v, decode: (v) => v, name: 'x', format: 'buffer' })
+  t.same(commonNames(transcoder.encodings()), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64', 'x'])
+  t.same(names(transcoder.encodings()), ['utf8+buffer', 'json+buffer', 'buffer', 'view+buffer', 'hex', 'base64', 'x'])
 
-  transcoder.encoding({ encode: (v) => v, decode: (v) => v, type: 'y', format: 'view' })
-  t.same(transcoder.types(), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64', 'x', 'y'])
-  t.same(transcoder.types(true), ['utf8+buffer', 'json+buffer', 'buffer', 'view+buffer', 'hex', 'base64', 'x', 'y+buffer'])
+  transcoder.encoding({ encode: (v) => v, decode: (v) => v, name: 'y', format: 'view' })
+  t.same(commonNames(transcoder.encodings()), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64', 'x', 'y'])
+  t.same(names(transcoder.encodings()), ['utf8+buffer', 'json+buffer', 'buffer', 'view+buffer', 'hex', 'base64', 'x', 'y+buffer'])
 
   t.end()
 })
@@ -53,13 +55,13 @@ test('transcoder.types()', function (t) {
 test('Transcoder() throws if format is an alias', function (t) {
   t.plan(3 * 2)
 
-  for (const [alias, type] of ['binary:buffer', 'utf-8:utf8', 'none:id'].map(s => s.split(':'))) {
+  for (const [alias, name] of ['binary:buffer', 'utf-8:utf8', 'none:id'].map(s => s.split(':'))) {
     try {
       // eslint-disable-next-line no-new
       new Transcoder([alias])
     } catch (err) {
       t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.is(err.message, `The '${alias}' alias is not supported here; use '${type}' instead`)
+      t.is(err.message, `The '${alias}' alias is not supported here; use '${name}' instead`)
     }
   }
 })
@@ -84,12 +86,12 @@ test('transcoder.encoding() throws if encoding is not found', function (t) {
 
   const transcoder = new Transcoder(['buffer'])
 
-  for (const type of ['x', 'buffer+', '+buffer']) {
+  for (const name of ['x', 'buffer+', '+buffer']) {
     try {
-      transcoder.encoding(type)
+      transcoder.encoding(name)
     } catch (err) {
       t.is(err.code, 'LEVEL_ENCODING_NOT_FOUND')
-      t.is(err.message, `Encoding '${type}' is not found`)
+      t.is(err.message, `Encoding '${name}' is not found`)
     }
   }
 })
@@ -97,14 +99,14 @@ test('transcoder.encoding() throws if encoding is not found', function (t) {
 test('transcoder.encoding() throws if encoding cannot be transcoded', function (t) {
   t.plan(2)
 
-  for (const [format, type] of [['buffer', 'id']]) {
+  for (const [format, name] of [['buffer', 'id']]) {
     const transcoder = new Transcoder([format])
 
     try {
-      transcoder.encoding(type)
+      transcoder.encoding(name)
     } catch (err) {
       t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.is(err.message, `Encoding '${type}' cannot be transcoded to '${format}'`)
+      t.is(err.message, `Encoding '${name}' cannot be transcoded to '${format}'`)
     }
   }
 })
@@ -112,14 +114,14 @@ test('transcoder.encoding() throws if encoding cannot be transcoded', function (
 test('transcoder.encoding() throws if encoding is not supported', function (t) {
   t.plan(2)
 
-  for (const [format, type] of [['utf8', 'buffer']]) {
+  for (const [format, name] of [['utf8', 'buffer']]) {
     const transcoder = new Transcoder([format])
 
     try {
-      transcoder.encoding(type)
+      transcoder.encoding(name)
     } catch (err) {
       t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.is(err.message, `Encoding '${type}' is not supported`)
+      t.is(err.message, `Encoding '${name}' is not supported`)
     }
   }
 })
@@ -133,7 +135,7 @@ test('transcoder.encoding() throws if custom encoding is not supported', functio
 
   for (const opts of [newOpts, legacyOpts]) {
     try {
-      transcoder.encoding({ encode: (v) => v, decode: (v) => v, type: 'x', ...opts })
+      transcoder.encoding({ encode: (v) => v, decode: (v) => v, name: 'x', ...opts })
     } catch (err) {
       t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
       t.is(err.message, "Encoding 'x' is not supported")
@@ -152,30 +154,72 @@ test('transcoder.encoding() caches encodings', function (t) {
   const transcoder = new Transcoder(['buffer'])
 
   const view = transcoder.encoding('view')
-  t.is(transcoder.encoding('view'), view, 'caches transcoded encoding')
+  t.is(transcoder.encoding('view'), view, 'caches transcoded encoding by commonName')
+  t.is(transcoder.encoding('view+buffer'), view, 'caches transcoded encoding by name')
   t.is(transcoder.encoding(view), view, 'caches encoding instance')
+
+  const utf8 = transcoder.encoding('utf8+buffer')
+  t.is(transcoder.encoding('utf8'), utf8, 'caches transcoded encoding by commonName')
+  t.is(transcoder.encoding('utf8+buffer'), utf8, 'caches transcoded encoding by name')
+  t.is(transcoder.encoding(utf8), utf8, 'caches encoding instance')
 
   const buffer = transcoder.encoding('buffer')
   t.is(transcoder.encoding('buffer'), buffer, 'caches non-transcoded encoding')
   t.is(transcoder.encoding('binary'), buffer, 'caches aliased encoding')
   t.is(transcoder.encoding(buffer), buffer, 'caches encoding instance')
 
-  const customOpts = { encode: (v) => v, decode: (v) => v, type: 'test' }
+  const customOpts = { encode: (v) => v, decode: (v) => v, name: 'test' }
   const custom = transcoder.encoding(customOpts)
   t.is(transcoder.encoding(customOpts), custom, 'caches custom encoding')
-  t.is(transcoder.encoding('test'), custom, 'caches custom encoding by type')
+  t.is(transcoder.encoding('test'), custom, 'caches custom encoding by name')
   t.is(transcoder.encoding(custom), custom, 'caches custom encoding by instance')
 
   const anonymousOpts = { encode: (v) => v, decode: (v) => v }
   const anonymous = transcoder.encoding(anonymousOpts)
   t.is(transcoder.encoding(anonymous), anonymous, 'caches anonymous encoding')
-  t.is(transcoder.encoding(anonymous.type), anonymous, 'caches anonymous encoding by type')
+  t.is(transcoder.encoding(anonymous.name), anonymous, 'caches anonymous encoding by name')
   t.is(transcoder.encoding(anonymous), anonymous, 'caches anonymous encoding by instance')
 
-  const unique = new Set([view, buffer, custom, anonymous])
-  t.is(unique.size, 4, 'created 4 unique encodings')
+  const unique = new Set([view, utf8, buffer, custom, anonymous])
+  t.is(unique.size, 5, 'created unique encodings')
 
   t.end()
+})
+
+test('transcoder.encoding() sets format based on format, buffer or code option', function (t) {
+  const make = (opts) => new Transcoder(['buffer', 'view', 'utf8']).encoding(opts)
+
+  t.is(make({ buffer: true }).format, 'buffer')
+  t.is(make({ buffer: false }).format, 'utf8')
+  t.is(make({ code: 1 }).format, 'view')
+  t.is(make({ buffer: false, code: 1 }).format, 'utf8') // Precedence for no particular reason
+  t.is(make({ buffer: true, code: 1 }).format, 'buffer') // Precedence for no particular reason
+  t.is(make({ format: 'view', buffer: true }).format, 'view')
+  t.is(make({ format: 'view', buffer: false }).format, 'view')
+  t.is(make({ format: 'buffer', code: 1 }).format, 'buffer')
+
+  for (const ignored of [null, undefined, 1, 'x']) {
+    t.is(make({ buffer: ignored }).format, 'buffer', 'ignores invalid legacy buffer option')
+  }
+
+  for (const ignored of [null, undefined, 'abc', Infinity, NaN]) {
+    t.is(make({ code: ignored }).format, 'buffer', 'ignores invalid code option')
+  }
+
+  t.end()
+})
+
+test('transcoder.encoding() does not support custom format', function (t) {
+  t.plan(2)
+
+  const transcoder = new Transcoder(['xyz'])
+
+  try {
+    transcoder.encoding({ name: 'test', format: 'xyz' })
+  } catch (err) {
+    t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
+    t.is(err.message, "Encoding 'xyz' is not supported")
+  }
 })
 
 test('transcoder.encoding() wraps custom anonymous encoding', function (t) {
@@ -185,7 +229,7 @@ test('transcoder.encoding() wraps custom anonymous encoding', function (t) {
   const verify = (encoding) => {
     t.is(encoding.encode(1), 2, 'has encode() function')
     t.is(encoding.decode(1), 2, 'has decode() function')
-    t.ok(/^anonymous-\d+$/.test(encoding.type), 'is anonymous: ' + encoding.type)
+    t.ok(/^anonymous-\d+$/.test(encoding.name), 'is anonymous: ' + encoding.name)
     t.is(encoding.buffer, undefined, 'does not expose legacy buffer option')
   }
 
