@@ -3,16 +3,16 @@
 const test = require('tape')
 const Transcoder = require('..')
 
-test('Transcoder() throws if first argument is not iterable', function (t) {
+test('Transcoder() throws if first argument is not an array', function (t) {
   t.plan(5 * 2)
 
-  for (const invalid of [null, undefined, false, 'foo', {}]) {
+  for (const invalid of [null, undefined, false, 'foo', new Set()]) {
     try {
       // eslint-disable-next-line no-new
       new Transcoder(invalid)
     } catch (err) {
       t.is(err.name, 'TypeError')
-      t.is(err.message, "The first argument 'formats' must be an Iterable")
+      t.is(err.message, "The first argument 'formats' must be an array")
     }
   }
 })
@@ -36,10 +36,6 @@ test('transcoder.encodings()', function (t) {
   t.same(commonNames(transcoder.encodings()), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64'])
   t.same(names(transcoder.encodings()), ['utf8+view', 'json+view', 'buffer+view', 'view', 'hex+view', 'base64+view'])
 
-  transcoder = new Transcoder(['id'])
-  t.same(commonNames(transcoder.encodings()), ['id'])
-  t.same(names(transcoder.encodings()), ['id'])
-
   transcoder = new Transcoder(['buffer'])
   transcoder.encoding({ encode: (v) => v, decode: (v) => v, name: 'x', format: 'buffer' })
   t.same(commonNames(transcoder.encodings()), ['utf8', 'json', 'buffer', 'view', 'hex', 'base64', 'x'])
@@ -52,16 +48,16 @@ test('transcoder.encodings()', function (t) {
   t.end()
 })
 
-test('Transcoder() throws if format is an alias', function (t) {
+test('Transcoder() throws if format is not buffer, view or utf8', function (t) {
   t.plan(3 * 2)
 
-  for (const [alias, name] of ['binary:buffer', 'utf-8:utf8', 'none:id'].map(s => s.split(':'))) {
+  for (const format of ['binary', 'utf-8', 'xyz']) {
     try {
       // eslint-disable-next-line no-new
-      new Transcoder([alias])
+      new Transcoder([format])
     } catch (err) {
-      t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.is(err.message, `The '${alias}' alias is not supported here; use '${name}' instead`)
+      t.is(err.name, 'TypeError')
+      t.is(err.message, "Format must be one of 'buffer', 'view', 'utf8'")
     }
   }
 })
@@ -99,30 +95,13 @@ test('transcoder.encoding() throws if encoding is not found', function (t) {
 test('transcoder.encoding() throws if encoding cannot be transcoded', function (t) {
   t.plan(2)
 
-  for (const [format, name] of [['buffer', 'id']]) {
-    const transcoder = new Transcoder([format])
+  const transcoder = new Transcoder(['utf8'])
 
-    try {
-      transcoder.encoding(name)
-    } catch (err) {
-      t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.is(err.message, `Encoding '${name}' cannot be transcoded to '${format}'`)
-    }
-  }
-})
-
-test('transcoder.encoding() throws if encoding is not supported', function (t) {
-  t.plan(2)
-
-  for (const [format, name] of [['utf8', 'buffer']]) {
-    const transcoder = new Transcoder([format])
-
-    try {
-      transcoder.encoding(name)
-    } catch (err) {
-      t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.is(err.message, `Encoding '${name}' is not supported`)
-    }
+  try {
+    transcoder.encoding('buffer')
+  } catch (err) {
+    t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
+    t.is(err.message, "Encoding 'buffer' cannot be transcoded to 'utf8'")
   }
 })
 
@@ -138,14 +117,14 @@ test('transcoder.encoding() throws if custom encoding is not supported', functio
       transcoder.encoding({ encode: (v) => v, decode: (v) => v, name: 'x', ...opts })
     } catch (err) {
       t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.is(err.message, "Encoding 'x' is not supported")
+      t.is(err.message, "Encoding 'x' cannot be transcoded to 'utf8'")
     }
 
     try {
       transcoder.encoding({ encode: (v) => v, decode: (v) => v, ...opts })
     } catch (err) {
       t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-      t.ok(/^Encoding 'anonymous-\d+' is not supported$/.test(err.message))
+      t.ok(/^Encoding 'anonymous-\d+' cannot be transcoded to 'utf8'$/.test(err.message))
     }
   }
 })
@@ -209,16 +188,16 @@ test('transcoder.encoding() sets format based on format, buffer or code option',
   t.end()
 })
 
-test('transcoder.encoding() does not support custom format', function (t) {
+test('transcoder.encoding() throws if format is not buffer, view or utf8', function (t) {
   t.plan(2)
 
-  const transcoder = new Transcoder(['xyz'])
+  const transcoder = new Transcoder(['buffer'])
 
   try {
     transcoder.encoding({ name: 'test', format: 'xyz' })
   } catch (err) {
-    t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
-    t.is(err.message, "Encoding 'xyz' is not supported")
+    t.is(err.name, 'TypeError')
+    t.is(err.message, "Format must be one of 'buffer', 'view', 'utf8'")
   }
 })
 

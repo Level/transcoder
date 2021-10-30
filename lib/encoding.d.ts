@@ -25,9 +25,9 @@ export abstract class Encoding<TIn, TFormat, TOut> {
 
   /**
    * The name of the (lower-level) encoding used by the return value of
-   * {@link encode}. Typically one of 'buffer', 'view', 'utf8'.
+   * {@link encode}. One of 'buffer', 'view', 'utf8'.
    */
-  format: string
+  format: 'buffer' | 'view' | 'utf8'
 
   /**
    * Create a new encoding that transcodes {@link TFormat} to a view.
@@ -58,10 +58,10 @@ export interface EncodingOptions<TIn, TFormat, TOut> {
 
   /**
    * The name of the (lower-level) encoding used by the return value of
-   * {@link encode}. Typically one of 'buffer', 'view', 'utf8'. Defaults to
-   * 'buffer' if the {@link buffer} and {@link code} options are also undefined.
+   * {@link encode}. One of 'buffer', 'view', 'utf8'. Defaults to 'buffer'
+   * if the {@link buffer} and {@link code} options are also undefined.
    */
-  format?: string | undefined
+  format?: 'buffer' | 'view' | 'utf8' | undefined
 
   /**
    * Legacy `level-codec` option that means the same as `format: 'buffer'`

@@ -5,7 +5,7 @@ declare class Transcoder<T = any> {
    * Create a Transcoder.
    * @param formats Formats supported by consumer.
    */
-  constructor (formats: Iterable<string>)
+  constructor (formats: Array<'buffer'|'view'|'utf8'>)
 
   /**
    * Get supported encoding objects.
@@ -26,7 +26,6 @@ declare class Transcoder<T = any> {
   encoding (encoding: 'json'): Encoding<any, T, any>
   encoding (encoding: 'hex'): Encoding<Buffer | string, T, string>
   encoding (encoding: 'base64'): Encoding<Buffer | string, T, string>
-  encoding (encoding: 'id'): Encoding<any, any, any>
   encoding (encoding: string): Encoding<any, T, any>
 }
 

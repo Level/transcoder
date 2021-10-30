@@ -7,31 +7,24 @@ const { BufferFormat, ViewFormat, UTF8Format } = require('./lib/formats')
 
 const kFormats = Symbol('formats')
 const kEncodings = Symbol('encodings')
+const validFormats = new Set(['buffer', 'view', 'utf8'])
 
 /** @template T */
 class Transcoder {
   /**
-   * @param {Iterable<string>} formats
+   * @param {Array<'buffer'|'view'|'utf8'>} formats
    */
   constructor (formats) {
-    if (formats == null ||
-      typeof formats[Symbol.iterator] !== 'function' ||
-      typeof formats === 'string') {
-      throw new TypeError("The first argument 'formats' must be an Iterable")
+    if (!Array.isArray(formats)) {
+      throw new TypeError("The first argument 'formats' must be an array")
+    } else if (!formats.every(f => validFormats.has(f))) {
+      // Note: we only only support aliases in key- and valueEncoding options (where we already did)
+      throw new TypeError("Format must be one of 'buffer', 'view', 'utf8'")
     }
 
     /** @type {Map<string|Encoding<any, any, any>|EncodingOptions<any, any, any>, Encoding<any, any, any>>} */
     this[kEncodings] = new Map()
     this[kFormats] = new Set(formats)
-
-    // Only support aliases in key- and valueEncoding options (where we already did)
-    for (const [alias, { name }] of Object.entries(aliases)) {
-      if (this[kFormats].has(alias)) {
-        throw new ModuleError(`The '${alias}' alias is not supported here; use '${name}' instead`, {
-          code: 'LEVEL_ENCODING_NOT_SUPPORTED'
-        })
-      }
-    }
 
     // Register encodings (done early in order to populate encodings())
     for (const k in encodings) {
@@ -83,7 +76,7 @@ class Transcoder {
         } else if (this[kFormats].has('buffer')) {
           resolved = resolved.createBufferTranscoder()
         } else {
-          throw new ModuleError(`Encoding '${name}' is not supported`, {
+          throw new ModuleError(`Encoding '${name}' cannot be transcoded to 'utf8'`, {
             code: 'LEVEL_ENCODING_NOT_SUPPORTED'
           })
         }
@@ -112,9 +105,7 @@ function from (options) {
     case 'utf8': return new UTF8Format(options)
     case 'buffer': return new BufferFormat(options)
     default: {
-      throw new ModuleError(`Encoding '${format}' is not supported`, {
-        code: 'LEVEL_ENCODING_NOT_SUPPORTED'
-      })
+      throw new TypeError("Format must be one of 'buffer', 'view', 'utf8'")
     }
   }
 }
@@ -147,8 +138,7 @@ function detectFormat ({ format, buffer, code }) {
  */
 const aliases = {
   binary: encodings.buffer,
-  'utf-8': encodings.utf8,
-  none: encodings.id
+  'utf-8': encodings.utf8
 }
 
 /**

@@ -20,15 +20,15 @@ test('Encoding() throws on invalid encode or decode option', function (t) {
 })
 
 test('Encoding() throws on invalid format option', function (t) {
-  t.plan(5 * 2)
+  t.plan(4 * 2)
 
-  for (const invalid of ['', null, undefined, true, 123]) {
+  for (const invalid of ['binary', null, undefined, 123]) {
     try {
       // eslint-disable-next-line no-new
       new Encoding({ format: invalid })
     } catch (err) {
       t.is(err.name, 'TypeError', 'is a TypeError')
-      t.is(err.message, "The 'format' option must be a non-empty string", 'correct message')
+      t.is(err.message, "The 'format' option must be one of 'buffer', 'view', 'utf8'", 'correct message')
     }
   }
 })

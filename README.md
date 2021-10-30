@@ -57,17 +57,16 @@ For example, on `leveldown` a call like `db.put(key, { x: 3 }, { valueEncoding: 
 
 Various modules in the ecosystem, in and outside of level, can be used with `level-transcoder`.
 
-| Module                                     | Format       | Interface                    | Named |
-|:-------------------------------------------|:-------------|:-----------------------------|:------|
-| [`protocol-buffers`][protocol-buffers]     | buffer       | `level-codec`                | ❌    |
-| [`charwise`][charwise]                     | utf8         | `level-codec`                | ✅    |
-| [`bytewise`][bytewise]                     | buffer       | `level-codec`                | ✅    |
-| [`lexicographic-integer-encoding`][lexint] | buffer, utf8 | `level-codec`                | ✅    |
-| [`codecs`][mafintosh-codecs]               | buffer       | `codecs`                     | ✅    |
-| [`abstract-encoding`][abstract-encoding]   | buffer       | `abstract-encoding`          | ❌    |
-| [`multiformats`][js-multiformats]          | view         | [`multiformats`][blockcodec] | ✅    |
-| [`base32-codecs`][base32-codecs]           | buffer       | `codecs`                     | ✅    |
-| [`level-codec`][level-codec]               | buffer, utf8 | `level-codec`                | ✅    |
+| Module                                     | Format       | Interface                           | Named |
+|:-------------------------------------------|:-------------|:------------------------------------|:------|
+| [`protocol-buffers`][protocol-buffers]     | buffer       | [`level-codec`][level-codec]        | ❌    |
+| [`charwise`][charwise]                     | utf8         | [`level-codec`][level-codec]        | ✅    |
+| [`bytewise`][bytewise]                     | buffer       | [`level-codec`][level-codec]        | ✅    |
+| [`lexicographic-integer-encoding`][lexint] | buffer, utf8 | [`level-codec`][level-codec]        | ✅    |
+| [`codecs`][mafintosh-codecs]               | buffer       | [`codecs`][mafintosh-codecs]        | ✅    |
+| [`abstract-encoding`][abstract-enc]        | buffer       | [`abstract-encoding`][abstract-enc] | ❌    |
+| [`multiformats`][js-multiformats]          | view         | [`multiformats`][blockcodec]        | ✅    |
+| [`base32-codecs`][base32-codecs]           | buffer       | [`codecs`][mafintosh-codecs]        | ✅    |
 
 Common between the interfaces is that they have `encode()` and `decode()` methods. The terms "codec" and "encoding" are used interchangeably. Passing these encodings through `Transcoder#encoding()` (which is done implicitly when used in an `abstract-level` database) results in normalized encoding objects that follow [the interface](./lib/encoding.d.ts) of `level-transcoder`.
 
@@ -206,7 +205,7 @@ Support us with a monthly donation on [Open Collective](https://opencollective.c
 
 [mafintosh-codecs]: https://github.com/mafintosh/codecs
 
-[abstract-encoding]: https://github.com/mafintosh/abstract-encoding
+[abstract-enc]: https://github.com/mafintosh/abstract-encoding
 
 [js-multiformats]: https://github.com/multiformats/js-multiformats
 
