@@ -8,12 +8,12 @@ declare class Transcoder<T = any> {
   constructor (formats: Array<'buffer'|'view'|'utf8'>)
 
   /**
-   * Get supported encoding objects.
+   * Get an array of supported encoding objects.
    */
   encodings (): Array<Encoding<any, T, any>>
 
   /**
-   * Get the given encoding, creating a transcoder if necessary.
+   * Get the given encoding, creating a transcoder encoding if necessary.
    * @param encoding Named encoding or encoding object.
    */
   encoding<TIn, TFormat, TOut> (

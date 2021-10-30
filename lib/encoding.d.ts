@@ -13,18 +13,19 @@ export abstract class Encoding<TIn, TFormat, TOut> {
   /** Decode data. */
   decode: (data: TFormat) => TOut
 
-  /** Unique name for this encoding. */
+  /** Unique name. */
   name: string
 
   /**
-   * Common name. If this encoding is a transcoder, {@link name} will be for
-   * example 'json+view' and {@link commonName} will be just 'json'. Else
-   * {@link name} will equal {@link commonName}.
+   * Common name, computed from {@link name}. If this encoding is a
+   * transcoder encoding, {@link name} will be for example 'json+view'
+   * and {@link commonName} will be just 'json'. Else {@link name}
+   * will equal {@link commonName}.
    */
   get commonName (): string
 
   /**
-   * The name of the (lower-level) encoding used by the return value of
+   * Name of the (lower-level) encoding used by the return value of
    * {@link encode}. One of 'buffer', 'view', 'utf8'.
    */
   format: 'buffer' | 'view' | 'utf8'
@@ -40,6 +41,8 @@ export abstract class Encoding<TIn, TFormat, TOut> {
   createBufferTranscoder (): BufferFormat<TIn, TOut>
 }
 
+// TODO: split into multiple interfaces (and then union those) in order to
+// separate the main level-transcoder interface from compatibility options.
 export interface EncodingOptions<TIn, TFormat, TOut> {
   /**
    * Encode data.
@@ -52,7 +55,7 @@ export interface EncodingOptions<TIn, TFormat, TOut> {
   decode?: ((data: TFormat) => TOut) | undefined
 
   /**
-   * Unique name for this encoding.
+   * Unique name.
    */
   name?: string | undefined
 

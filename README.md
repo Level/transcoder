@@ -1,6 +1,6 @@
 # level-transcoder
 
-**Encode data with built-in or custom encodings.** The (not yet official) successor to [`level-codec`][level-codec] that introduces "transcoders" to translate between encodings and internal data formats supported by a db. This allows a db to store keys and values in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of all known encodings.
+**Encode data with built-in or custom encodings.** The (not yet official) successor to [`level-codec`][level-codec] that transcodes encodings from and to internal data formats supported by a database. This allows a database to store keys and values in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of all known encodings.
 
 [![level badge][level-badge]](https://github.com/Level/awesome)
 [![Test](https://img.shields.io/github/workflow/status/Level/transcoder/Test?label=test)](https://github.com/Level/transcoder/actions/workflows/test.yml)
@@ -11,14 +11,19 @@
 
 ## Usage
 
+Create a transcoder, passing a desired format:
+
 ```js
 const Transcoder = require('level-transcoder')
 
-// Create a transcoder, passing a desired format
 const transcoder1 = new Transcoder(['view'])
 const transcoder2 = new Transcoder(['buffer'])
 const transcoder3 = new Transcoder(['utf8'])
+```
 
+Then select an encoding and encode some data:
+
+```js
 // Uint8Array(3) [ 49, 50, 51 ]
 console.log(transcoder1.encoding('json').encode(123))
 
@@ -29,145 +34,148 @@ console.log(transcoder2.encoding('json').encode(123))
 console.log(transcoder3.encoding('json').encode(123))
 ```
 
-If given multiple formats (like how [`leveldown`][leveldown] can work with both Buffer and strings), the best fitting format is chosen. Not by magic, just hardcoded logic because we don't have that many formats to deal with.
-
-For example, knowing that JSON is a UTF-8 string which matches the desired `utf8` format, the `json` encoding will return a string here:
+If the `Transcoder` constructor is given multiple formats then `Transcoder#encoding()` selects an encoding with the best fitting format. Consider a database like [`leveldown`][leveldown] which has the ability to return data as a Buffer or string. If an `encoding.decode(data)` function needs a string, we'll want to fetch that `data` from the database as a string. This avoids the cost of having to convert a Buffer to a string. So we'd use the following transcoder:
 
 ```js
-const transcoder4 = new Transcoder(['buffer', 'utf8'])
+const transcoder = new Transcoder(['buffer', 'utf8'])
+```
 
+Then, knowing for example that the return value of `JSON.stringify(data)` is a UTF-8 string which matches one of the given formats, the `json` encoding will return a string here:
+
+```js
 // '123'
-console.log(transcoder4.encoding('json').encode(123))
+console.log(transcoder.encoding('json').encode(123))
 ```
 
-In contrast, the `view` encoding doesn't match either `buffer` or `utf8` so data encoded by the `view` encoding gets transcoded into Buffers:
+In contrast, data encoded as a `view` (for now that just means Uint8Array) would get transcoded into `buffer`. Copying of data is avoided where possible, like how the underlying ArrayBuffer of a view can be passed to `Buffer.from(..)` without a copy.
 
-```js
-// <Buffer 31 32 33>
-console.log(transcoder4.encoding('view').encode(Uint8Array.from([49, 50, 51])))
-```
+Lastly, encodings returned by `Transcoder#encoding()` have a `format` property to be used to forward information to an underlying store. For example: an input value of `{ x: 3 }` using the `json` encoding which has a `format` of `utf8`, can be forwarded as value `'{"x":3}'` with encoding `utf8`. Vice versa for output.
 
-Copying of data is avoided where possible. That's true in the last example, because the underlying ArrayBuffer of the view can be passed to a Buffer constructor without a copy.
+## Encodings
 
-Lastly, the encoding returned by `Transcoder#encoding()` has a `format` property to be used to forward key- and valueEncoding options to an underlying store. This way, both the public and private API's of a db will be encoding-aware (somewhere in the future).
+### Built-in Encodings
 
-For example, on `leveldown` a call like `db.put(key, { x: 3 }, { valueEncoding: 'json' })` will pass that value `{ x: 3 }` through a `json` encoding that has a `format` of `utf8`, which is then forwarded as `db._put(key, '{"x":3}', { valueEncoding: 'utf8' })`.
+These encodings can be used out of the box and are to be selected by name.
 
-## Compatible with
+In this table, the _input_ is what `encode()` accepts. The _format_ is what `encode()` returns as well as what `decode()` accepts. The _output_ is what `decode()` returns. The TypeScript typings of `level-transcoder` have generic type parameters with matching names: `TIn`, `TFormat` and `TOut`.
 
-Various modules in the ecosystem, in and outside of level, can be used with `level-transcoder`.
+| Name                  | Input                      | Format              | Output          |
+| :-------------------- | :------------------------- | :------------------ | :-------------- |
+| `buffer` <sup>1</sup> | Buffer, Uint8Array, String | `buffer` (Buffer)   | Buffer          |
+| `view`                | Uint8Array, Buffer, String | `view` (Uint8Array) | Uint8Array      |
+| `utf8`                | String, Buffer, Uint8Array | `utf8` (String)     | String          |
+| `json`                | Any JSON type              | `utf8` (String)     | Input           |
+| `hex`                 | String (hex), Buffer       | `buffer` (Buffer)   | String (hex)    |
+| `base64`              | String (base64), Buffer    | `buffer` (Buffer)   | String (base64) |
 
-| Module                                     | Format       | Interface                           | Named |
-|:-------------------------------------------|:-------------|:------------------------------------|:------|
-| [`protocol-buffers`][protocol-buffers]     | buffer       | [`level-codec`][level-codec]        | ❌    |
-| [`charwise`][charwise]                     | utf8         | [`level-codec`][level-codec]        | ✅    |
-| [`bytewise`][bytewise]                     | buffer       | [`level-codec`][level-codec]        | ✅    |
-| [`lexicographic-integer-encoding`][lexint] | buffer, utf8 | [`level-codec`][level-codec]        | ✅    |
-| [`codecs`][mafintosh-codecs]               | buffer       | [`codecs`][mafintosh-codecs]        | ✅    |
-| [`abstract-encoding`][abstract-enc]        | buffer       | [`abstract-encoding`][abstract-enc] | ❌    |
-| [`multiformats`][js-multiformats]          | view         | [`multiformats`][blockcodec]        | ✅    |
-| [`base32-codecs`][base32-codecs]           | buffer       | [`codecs`][mafintosh-codecs]        | ✅    |
+<sup>1</sup> Aliased as `binary`. Use of this alias does not affect the ability to transcode.
 
-Common between the interfaces is that they have `encode()` and `decode()` methods. The terms "codec" and "encoding" are used interchangeably. Passing these encodings through `Transcoder#encoding()` (which is done implicitly when used in an `abstract-level` database) results in normalized encoding objects that follow [the interface](./lib/encoding.d.ts) of `level-transcoder`.
+### Transcoder Encodings
 
-If the format in the table above is buffer, then `encode()` is expected to return a Buffer. If utf8, then a string. If view, then a Uint8Array.
+It's not necessary to use or reference the below encodings directly. They're listed here for implementation notes and to show how input and output is the same; it's the format that differs.
 
-Those marked as not named are modules that export or generate anonymous encodings that don't have a `name` property (or `type` as an alias) which means they can only be used as objects and not by name. Passing an anonymous encoding through `Transcoder#encoding()` does give it a `name` property for compatibility, but the value of `name` is not deterministic.
+Custom encodings are transcoded in the same way and require no additional setup. For example: if a custom encoding has `{ name: 'example', format: 'utf8' }` then `level-transcoder` will create transcoder encodings on demand with names `example+buffer` and `example+view`.
 
----
+| Name                       | Input                      | Format   | Output          |
+| :--------------------------| :------------------------- | :------- | :-------------- |
+| `buffer+view`              | Buffer, Uint8Array, String | `view`   | Buffer          |
+| `view+buffer`              | Uint8Array, Buffer, String | `buffer` | Uint8Array      |
+| `utf8+view`                | String, Buffer, Uint8Array | `view`   | String          |
+| `utf8+buffer`              | String, Buffer, Uint8Array | `buffer` | String          |
+| `json+view`                | Any JSON type              | `view`   | Input           |
+| `json+buffer`              | Any JSON type              | `buffer` | Input           |
+| `hex+view` <sup>1</sup>    | String (hex), Buffer       | `view`   | String (hex)    |
+| `base64+view` <sup>1</sup> | String (base64), Buffer    | `view`   | String (base64) |
 
-**_Rest of README is not yet updated._**
+<sup>1</sup> Unlike other encodings that transcode to `view`, these depend on Buffer at the moment and thus don't work in browsers if a [shim](https://github.com/feross/buffer) is not included by JavaScript bundlers like Webpack and Browserify.
+
+### Ecosystem Encodings
+
+Various modules in the ecosystem, in and outside of Level, can be used with `level-transcoder` although they follow different interfaces. Common between the interfaces is that they have `encode()` and `decode()` methods. The terms "codec" and "encoding" are used interchangeably in the ecosystem. Passing these encodings through `Transcoder#encoding()` (which is done implicitly when used in an `abstract-level` database) results in normalized encoding objects as described further below.
+
+| Module                                     | Format           | Interface                           | Named |
+| :----------------------------------------- | :--------------- | :---------------------------------- | :---- |
+| [`protocol-buffers`][protocol-buffers]     | `buffer`         | [`level-codec`][level-codec]        | ❌    |
+| [`charwise`][charwise]                     | `utf8`           | [`level-codec`][level-codec]        | ✅    |
+| [`bytewise`][bytewise]                     | `buffer`         | [`level-codec`][level-codec]        | ✅    |
+| [`lexicographic-integer-encoding`][lexint] | `buffer`, `utf8` | [`level-codec`][level-codec]        | ✅    |
+| [`codecs`][mafintosh-codecs]               | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅    |
+| [`abstract-encoding`][abstract-enc]        | `buffer`         | [`abstract-encoding`][abstract-enc] | ❌    |
+| [`multiformats`][js-multiformats]          | `view`           | [`multiformats`][blockcodec]        | ✅    |
+| [`base32-codecs`][base32-codecs]           | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅    |
+
+Those marked as not named are modules that export or generate encodings that don't have a `name` property (or `type` as an alias). We call these _anonymous encodings_. They can only be used as objects and not by name. Passing an anonymous encoding through `Transcoder#encoding()` does give it a `name` property for compatibility, but the value of `name` is not deterministic.
 
 ## API
 
-### `codec = Codec([opts])`
+### `Transcoder`
 
-Create a new codec, with a global options object.
+#### `transcoder = new Transcoder(formats)`
 
-### `codec.encodeKey(key[, opts])`
+Create a new transcoder, providing the formats that are supported by a database (or other). The `formats` argument must be an array containing one or more of `'buffer'`, `'view'`, `'utf8'`. The returned `transcoder` instance is stateful, in that it contains a set of cached encoding objects.
 
-Encode `key` with given `opts`.
+#### `encoding = transcoder.encoding(encoding)`
 
-### `codec.encodeValue(value[, opts])`
+Returns the given `encoding` argument as a normalized encoding object that follows the `level-transcoder` encoding interface. The `encoding` argument may be:
 
-Encode `value` with given `opts`.
+- A string to select a known encoding by its name
+- An object that follows one of the following interfaces: [`level-transcoder`](#encoding-interface), [`level-codec`](https://github.com/Level/codec#encoding-format), [`codecs`][mafintosh-codecs], [`abstract-encoding`][abstract-enc], [`multiformats`][blockcodec]
+- A previously normalized encoding, such that `encoding(x)` equals `encoding(encoding(x))`.
 
-### `codec.encodeBatch(batch[, opts])`
+Results are cached. If the `encoding` argument is an object and it has a name then subsequent calls can refer to that encoding by name.
 
-Encode `batch` ops with given `opts`.
+Depending on the `formats` provided to the `Transcoder` constructor, this method may return a _transcoder encoding_ that translates the desired encoding from / to a supported format. Its `encode()` and `decode()` methods will have respectively the same input and output types as a non-transcoded encoding, but its `name` property will differ.
 
-### `codec.encodeLtgt(ltgt)`
+#### `encodings = transcoder.encodings()`
 
-Encode the ltgt values of option object `ltgt`.
+Get an array of encoding objects. This includes:
 
-### `codec.decodeKey(key[, opts])`
+- Encodings for the `formats` that were passed to the `Transcoder` constructor
+- Custom encodings that were passed to `transcoder.encoding()`
+- Transcoder encodings for either.
 
-Decode `key` with given `opts`.
+### `Encoding`
 
-### `codec.decodeValue(value[, opts])`
+#### `data = encoding.encode(data)`
 
-Decode `value` with given `opts`.
+Encode data.
 
-### `codec.createStreamDecoder([opts])`
+#### `data = encoding.decode(data)`
 
-Create a function with signature `(key, value)`, that for each key-value pair returned from a levelup read stream returns the decoded value to be emitted.
+Decode data.
 
-### `codec.keyAsBuffer([opts])`
+#### `encoding.name`
 
-Check whether `opts` and the global `opts` call for a binary key encoding.
+Unique name. A string.
 
-### `codec.valueAsBuffer([opts])`
+#### `encoding.commonName`
 
-Check whether `opts` and the global `opts` call for a binary value encoding.
+Common name, computed from `name`. If this encoding is a transcoder encoding, `name` will be for example `'json+view'` and `commonName` will be just `'json'`. Else `name` will equal `commonName`.
 
-### `codec.encodings`
+#### `encoding.format`
 
-The builtin encodings as object of form
+Name of the (lower-level) encoding used by the return value of `encode()`. One of `'buffer'`, `'view'`, `'utf8'`. If `name` equals `format` then the encoding can be assumed to be idempotent, such that `encode(x)` equals `encode(encode(x))`.
 
-```js
-{
-  [type]: encoding
+## Encoding Interface
+
+Custom encodings must follow the following interface:
+
+```ts
+interface EncodingOptions<TIn, TFormat, TOut> {
+  name: string
+  format: 'buffer' | 'view' | 'utf8'
+  encode: (data: TIn) => TFormat
+  decode: (data: TFormat) => TOut
 }
 ```
 
-See below for a list and the format of `encoding`.
+## Install
 
-## Builtin Encodings
+With [npm](https://npmjs.org) do:
 
-| Type                                                              | Input                        | Stored as        | Output    |
-| :---------------------------------------------------------------- | :--------------------------- | :--------------- | :-------- |
-| `utf8`                                                            | String or Buffer             | String or Buffer | String    |
-| `json`                                                            | Any JSON type                | JSON string      | Input     |
-| `binary`                                                          | Buffer, string or byte array | Buffer           | As stored |
-| `hex`<br>`ascii`<br>`base64`<br>`ucs2`<br>`utf16le`<br>`utf-16le` | String or Buffer             | Buffer           | String    |
-| `none` a.k.a. `id`                                                | Any type (bypass encoding)   | Input\*          | As stored |
-
-<sup>\*</sup> Stores may have their own type coercion. Whether type information is preserved depends on the [`abstract-leveldown`][abstract-leveldown] implementation as well as the underlying storage (`LevelDB`, `IndexedDB`, etc).
-
-## Encoding Format
-
-An encoding is an object of the form:
-
-```js
-{
-  encode: function (data) {
-    return data
-  },
-  decode: function (data) {
-    return data
-  },
-  buffer: Boolean,
-  type: 'example'
-}
 ```
-
-All of these properties are required.
-
-The `buffer` boolean tells consumers whether to fetch data as a Buffer, before calling your `decode()` function on that data. If `buffer` is true, it is assumed that `decode()` takes a Buffer. If false, it is assumed that `decode` takes any other type (usually a string).
-
-To explain this in the grand scheme of things, consider a store like [`leveldown`][leveldown] which has the ability to return either a Buffer or string, both sourced from the same byte array. Wrap this store with [`encoding-down`][encoding-down] and it'll select the most optimal data type based on the `buffer` property of the active encoding. If your `decode()` function needs a string (and the data can legitimately become a UTF8 string), you should set `buffer` to `false`. This avoids the cost of having to convert a Buffer to a string.
-
-The `type` string should be a unique name.
+npm install level-transcoder
+```
 
 ## Contributing
 
@@ -188,10 +196,6 @@ Support us with a monthly donation on [Open Collective](https://opencollective.c
 [level-badge]: https://leveljs.org/img/badge.svg
 
 [level-codec]: https://github.com/Level/codec
-
-[encoding-down]: https://github.com/Level/encoding-down
-
-[abstract-leveldown]: https://github.com/Level/abstract-leveldown
 
 [leveldown]: https://github.com/Level/leveldown
 
