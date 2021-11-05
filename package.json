@@ -18,8 +18,7 @@
     "index.js",
     "index.d.ts",
     "CHANGELOG.md",
-    "CONTRIBUTORS.md",
-    "LICENSE.md",
+    "LICENSE",
     "UPGRADING.md"
   ],
   "dependencies": {

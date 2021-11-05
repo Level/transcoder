@@ -2,65 +2,12 @@
 
 This document describes breaking changes and how to upgrade. For a complete list of changes including minor and patch releases, please refer to the [changelog](CHANGELOG.md).
 
-## Upcoming
+## 1.0.0
 
-WIP notes, describing the differences from `level-codec`.
+This is the initial release of `level-transcoder`, which was forked from `level-codec`. Ultimately `level-transcoder` got a completely different API, so the two modules are not interchangeable. That said, here are the high-level differences from `level-codec` just for the record:
 
-- Throws error if encoding is not found, rather than falling back to `id` encoding
-- The `binary` encoding has been renamed to `buffer`, with `binary` as an alias
-- The `utf8` encoding previously did not touch Buffers. Now it will call `buffer.toString('utf8')` for consistency. Consumers can use the `buffer` encoding to avoid this conversion.
-- The `id` encoding (aliased as `none`) which wasn't supported by any active `abstract-leveldown` implementation, has been removed.
-- The `ascii`, `ucs2` and `utf16le` encodings are not supported.
-
-## 10.0.0
-
-Legacy range options have been removed ([Level/community#86](https://github.com/Level/community/issues/86)). If you previously did:
-
-```js
-codec.encodeLtgt({ start: 'a', end: 'z' })
-```
-
-An error would now be thrown and you must instead do:
-
-```js
-codec.encodeLtgt({ gte: 'a', lte: 'z' })
-```
-
-This release also drops support of legacy runtime environments ([Level/community#98](https://github.com/Level/community/issues/98)):
-
-- Node.js 6 and 8
-- Internet Explorer 11
-- Safari 9-11
-- Stock Android browser (AOSP).
-
-## 9.0.0
-
-Dropped node 0.12, 4, 5 and 7.
-
-## 8.0.0
-
-Previously the "utf8" decoder always returned a string. This was a workaround for `encoding-down` that is no longer needed. The return type now depends on the `asBuffer` option, which is more optimal.
-
-## 7.0.0
-
-Dropped node 0.10 and iojs.
-
-## 6.0.0
-
-The `createDecodeStream()` method (introduced in the last 5.x version) has been replaced with `createStreamDecoder()`.
-
-## 5.0.0
-
-This is a rewrite of both internals and the public API. Please see the README for details.
-
-## 4.0.0
-
-Removed default encoding ("utf8"). If you relied on this behavior you must now define it yourself.
-
-## 3.0.0
-
-Removed the `encoding` option in favor of `keyEncoding` and `valueEncoding`. Note: it was partially restored in v6.1.0.
-
-## 2.0.0
-
-The function signature of `batch()` has changed from `batch(ops, batchOptions, dbOptions)` to `batch(ops, optionObjects)`.
+- Throws if an encoding is not found, rather than falling back to `'id'` encoding
+- The `'binary'` encoding has been renamed to `'buffer'`, with `'binary'` as an alias
+- The `'utf8'` encoding of `level-codec` did not touch Buffers. In `level-transcoder` the same encoding will call `buffer.toString('utf8')` for consistency. Consumers can use the `'buffer'` encoding to avoid this conversion.
+- The `'id'` encoding (aliased as `'none'`) which wasn't supported by any active `abstract-leveldown` implementation, has been removed.
+- The `'ascii'`, `'ucs2'` and `'utf16le'` encodings are not supported.

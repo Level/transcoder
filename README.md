@@ -1,8 +1,10 @@
 # level-transcoder
 
-**Encode data with built-in or custom encodings.** The (not yet official) successor to [`level-codec`][level-codec] that transcodes encodings from and to internal data formats supported by a database. This allows a database to store keys and values in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of all known encodings.
+**Encode data with built-in or custom encodings.** The successor to [`level-codec`][level-codec] that transcodes encodings from and to internal data formats supported by a database. This allows a database to store data in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of known encodings. That includes other encoding interfaces in the ecosystem like [`codecs`][mafintosh-codecs], [`abstract-encoding`][abstract-enc] and [`multiformats`][blockcodec].
 
 [![level badge][level-badge]](https://github.com/Level/awesome)
+[![npm](https://img.shields.io/npm/v/level-transcoder.svg)](https://www.npmjs.com/package/level-transcoder)
+[![Node version](https://img.shields.io/node/v/level-transcoder.svg)](https://www.npmjs.com/package/level-transcoder)
 [![Test](https://img.shields.io/github/workflow/status/Level/transcoder/Test?label=test)](https://github.com/Level/transcoder/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/Level/transcoder?label=&logo=codecov&logoColor=fff)](https://codecov.io/gh/Level/transcoder)
 [![Standard](https://img.shields.io/badge/standard-informational?logo=javascript&logoColor=fff)](https://standardjs.com)
@@ -40,16 +42,16 @@ If the `Transcoder` constructor is given multiple formats then `Transcoder#encod
 const transcoder = new Transcoder(['buffer', 'utf8'])
 ```
 
-Then, knowing for example that the return value of `JSON.stringify(data)` is a UTF-8 string which matches one of the given formats, the `json` encoding will return a string here:
+Then, knowing for example that the return value of `JSON.stringify(data)` is a UTF-8 string which matches one of the given formats, the `'json'` encoding will return a string here:
 
 ```js
 // '123'
 console.log(transcoder.encoding('json').encode(123))
 ```
 
-In contrast, data encoded as a `view` (for now that just means Uint8Array) would get transcoded into `buffer`. Copying of data is avoided where possible, like how the underlying ArrayBuffer of a view can be passed to `Buffer.from(..)` without a copy.
+In contrast, data encoded as a `'view'` (for now that just means Uint8Array) would get transcoded into the `'buffer'` encoding. Copying of data is avoided where possible, like how the underlying ArrayBuffer of a view can be passed to `Buffer.from(..)` without a copy.
 
-Lastly, encodings returned by `Transcoder#encoding()` have a `format` property to be used to forward information to an underlying store. For example: an input value of `{ x: 3 }` using the `json` encoding which has a `format` of `utf8`, can be forwarded as value `'{"x":3}'` with encoding `utf8`. Vice versa for output.
+Lastly, encodings returned by `Transcoder#encoding()` have a `format` property to be used to forward information to an underlying store. For example: an input value of `{ x: 3 }` using the `'json'` encoding which has a `format` of `'utf8'`, can be forwarded as value `'{"x":3}'` with encoding `'utf8'`. Vice versa for output.
 
 ## Encodings
 
@@ -59,35 +61,35 @@ These encodings can be used out of the box and are to be selected by name.
 
 In this table, the _input_ is what `encode()` accepts. The _format_ is what `encode()` returns as well as what `decode()` accepts. The _output_ is what `decode()` returns. The TypeScript typings of `level-transcoder` have generic type parameters with matching names: `TIn`, `TFormat` and `TOut`.
 
-| Name                  | Input                      | Format              | Output          |
-| :-------------------- | :------------------------- | :------------------ | :-------------- |
-| `buffer` <sup>1</sup> | Buffer, Uint8Array, String | `buffer` (Buffer)   | Buffer          |
-| `view`                | Uint8Array, Buffer, String | `view` (Uint8Array) | Uint8Array      |
-| `utf8`                | String, Buffer, Uint8Array | `utf8` (String)     | String          |
-| `json`                | Any JSON type              | `utf8` (String)     | Input           |
-| `hex`                 | String (hex), Buffer       | `buffer` (Buffer)   | String (hex)    |
-| `base64`              | String (base64), Buffer    | `buffer` (Buffer)   | String (base64) |
+| Name                    | Input                      | Format     | Output          |
+| :---------------------- | :------------------------- | :--------- | :-------------- |
+| `'buffer'` <sup>1</sup> | Buffer, Uint8Array, String | `'buffer'` | Buffer          |
+| `'view'`                | Uint8Array, Buffer, String | `'view'`   | Uint8Array      |
+| `'utf8'`                | String, Buffer, Uint8Array | `'utf8'`   | String          |
+| `'json'`                | Any JSON type              | `'utf8'`   | As input        |
+| `'hex'`                 | String (hex), Buffer       | `'buffer'` | String (hex)    |
+| `'base64'`              | String (base64), Buffer    | `'buffer'` | String (base64) |
 
-<sup>1</sup> Aliased as `binary`. Use of this alias does not affect the ability to transcode.
+<sup>1</sup> Aliased as `'binary'`. Use of this alias does not affect the ability to transcode.
 
 ### Transcoder Encodings
 
 It's not necessary to use or reference the below encodings directly. They're listed here for implementation notes and to show how input and output is the same; it's the format that differs.
 
-Custom encodings are transcoded in the same way and require no additional setup. For example: if a custom encoding has `{ name: 'example', format: 'utf8' }` then `level-transcoder` will create transcoder encodings on demand with names `example+buffer` and `example+view`.
+Custom encodings are transcoded in the same way and require no additional setup. For example: if a custom encoding has `{ name: 'example', format: 'utf8' }` then `level-transcoder` will create transcoder encodings on demand with names `'example+buffer'` and `'example+view'`.
 
-| Name                       | Input                      | Format   | Output          |
-| :--------------------------| :------------------------- | :------- | :-------------- |
-| `buffer+view`              | Buffer, Uint8Array, String | `view`   | Buffer          |
-| `view+buffer`              | Uint8Array, Buffer, String | `buffer` | Uint8Array      |
-| `utf8+view`                | String, Buffer, Uint8Array | `view`   | String          |
-| `utf8+buffer`              | String, Buffer, Uint8Array | `buffer` | String          |
-| `json+view`                | Any JSON type              | `view`   | Input           |
-| `json+buffer`              | Any JSON type              | `buffer` | Input           |
-| `hex+view` <sup>1</sup>    | String (hex), Buffer       | `view`   | String (hex)    |
-| `base64+view` <sup>1</sup> | String (base64), Buffer    | `view`   | String (base64) |
+| Name                         | Input                      | Format     | Output          |
+| :--------------------------- | :------------------------- | :--------- | :-------------- |
+| `'buffer+view'`              | Buffer, Uint8Array, String | `'view'`   | Buffer          |
+| `'view+buffer'`              | Uint8Array, Buffer, String | `'buffer'` | Uint8Array      |
+| `'utf8+view'`                | String, Buffer, Uint8Array | `'view'`   | String          |
+| `'utf8+buffer'`              | String, Buffer, Uint8Array | `'buffer'` | String          |
+| `'json+view'`                | Any JSON type              | `'view'`   | As input        |
+| `'json+buffer'`              | Any JSON type              | `'buffer'` | As input        |
+| `'hex+view'` <sup>1</sup>    | String (hex), Buffer       | `'view'`   | String (hex)    |
+| `'base64+view'` <sup>1</sup> | String (base64), Buffer    | `'view'`   | String (base64) |
 
-<sup>1</sup> Unlike other encodings that transcode to `view`, these depend on Buffer at the moment and thus don't work in browsers if a [shim](https://github.com/feross/buffer) is not included by JavaScript bundlers like Webpack and Browserify.
+<sup>1</sup> Unlike other encodings that transcode to `'view'`, these depend on Buffer at the moment and thus don't work in browsers if a [shim](https://github.com/feross/buffer) is not included by JavaScript bundlers like Webpack and Browserify.
 
 ### Ecosystem Encodings
 
