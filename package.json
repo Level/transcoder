@@ -1,6 +1,6 @@
 {
   "name": "level-transcoder",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Encode data with built-in or custom encodings",
   "license": "MIT",
   "main": "index.js",

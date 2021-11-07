@@ -97,14 +97,14 @@ Various modules in the ecosystem, in and outside of Level, can be used with `lev
 
 | Module                                     | Format           | Interface                           | Named |
 | :----------------------------------------- | :--------------- | :---------------------------------- | :---- |
-| [`protocol-buffers`][protocol-buffers]     | `buffer`         | [`level-codec`][level-codec]        | ❌    |
-| [`charwise`][charwise]                     | `utf8`           | [`level-codec`][level-codec]        | ✅    |
-| [`bytewise`][bytewise]                     | `buffer`         | [`level-codec`][level-codec]        | ✅    |
-| [`lexicographic-integer-encoding`][lexint] | `buffer`, `utf8` | [`level-codec`][level-codec]        | ✅    |
-| [`codecs`][mafintosh-codecs]               | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅    |
-| [`abstract-encoding`][abstract-enc]        | `buffer`         | [`abstract-encoding`][abstract-enc] | ❌    |
-| [`multiformats`][js-multiformats]          | `view`           | [`multiformats`][blockcodec]        | ✅    |
-| [`base32-codecs`][base32-codecs]           | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅    |
+| [`protocol-buffers`][protocol-buffers]     | `buffer`         | [`level-codec`][level-codec]        | ❌     |
+| [`charwise`][charwise]                     | `utf8`           | [`level-codec`][level-codec]        | ✅     |
+| [`bytewise`][bytewise]                     | `buffer`         | [`level-codec`][level-codec]        | ✅     |
+| [`lexicographic-integer-encoding`][lexint] | `buffer`, `utf8` | [`level-codec`][level-codec]        | ✅     |
+| [`codecs`][mafintosh-codecs]               | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅     |
+| [`abstract-encoding`][abstract-enc]        | `buffer`         | [`abstract-encoding`][abstract-enc] | ❌     |
+| [`multiformats`][js-multiformats]          | `view`           | [`multiformats`][blockcodec]        | ✅     |
+| [`base32-codecs`][base32-codecs]           | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅     |
 
 Those marked as not named are modules that export or generate encodings that don't have a `name` property (or `type` as an alias). We call these _anonymous encodings_. They can only be used as objects and not by name. Passing an anonymous encoding through `Transcoder#encoding()` does give it a `name` property for compatibility, but the value of `name` is not deterministic.
 
@@ -218,4 +218,3 @@ Support us with a monthly donation on [Open Collective](https://opencollective.c
 [blockcodec]: https://github.com/multiformats/js-multiformats/blob/master/src/codecs/interface.ts
 
 [base32-codecs]: https://github.com/consento-org/base32-codecs
-
