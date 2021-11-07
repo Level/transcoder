@@ -22,7 +22,7 @@ class Transcoder {
       throw new TypeError("Format must be one of 'buffer', 'view', 'utf8'")
     }
 
-    /** @type {Map<string|Encoding<any, any, any>|EncodingOptions<any, any, any>, Encoding<any, any, any>>} */
+    /** @type {Map<string|MixedEncoding<any, any, any>, Encoding<any, any, any>>} */
     this[kEncodings] = new Map()
     this[kFormats] = new Set(formats)
 
@@ -45,7 +45,7 @@ class Transcoder {
   }
 
   /**
-   * @param {string|Encoding<any, any, any>|EncodingOptions<any, any, any>} encoding
+   * @param {string|MixedEncoding<any, any, any>} encoding
    * @returns {Encoding<any, T, any>}
    */
   encoding (encoding) {
@@ -62,8 +62,6 @@ class Transcoder {
         }
       } else if (typeof encoding !== 'object' || encoding === null) {
         throw new TypeError("First argument 'encoding' must be a string or object")
-      } else if (encoding instanceof Encoding) {
-        resolved = encoding
       } else {
         resolved = from(encoding)
       }
@@ -75,8 +73,10 @@ class Transcoder {
           resolved = resolved.createViewTranscoder()
         } else if (this[kFormats].has('buffer')) {
           resolved = resolved.createBufferTranscoder()
+        } else if (this[kFormats].has('utf8')) {
+          resolved = resolved.createUTF8Transcoder()
         } else {
-          throw new ModuleError(`Encoding '${name}' cannot be transcoded to 'utf8'`, {
+          throw new ModuleError(`Encoding '${name}' cannot be transcoded`, {
             code: 'LEVEL_ENCODING_NOT_SUPPORTED'
           })
         }
@@ -91,19 +91,25 @@ class Transcoder {
   }
 }
 
-module.exports = Transcoder
+exports.Transcoder = Transcoder
 
 /**
- * @param {EncodingOptions<any, any, any>} options
+ * @param {MixedEncoding<any, any, any>} options
  * @returns {Encoding<any, any, any>}
  */
 function from (options) {
-  const format = detectFormat(options)
+  if (options instanceof Encoding) {
+    return options
+  }
 
-  switch (format) {
-    case 'view': return new ViewFormat(options)
-    case 'utf8': return new UTF8Format(options)
-    case 'buffer': return new BufferFormat(options)
+  // Loosely typed for ecosystem compatibility
+  const maybeType = 'type' in options && typeof options.type === 'string' ? options.type : undefined
+  const name = options.name || maybeType || `anonymous-${anonymousCount++}`
+
+  switch (detectFormat(options)) {
+    case 'view': return new ViewFormat({ ...options, name })
+    case 'utf8': return new UTF8Format({ ...options, name })
+    case 'buffer': return new BufferFormat({ ...options, name })
     default: {
       throw new TypeError("Format must be one of 'buffer', 'view', 'utf8'")
     }
@@ -113,15 +119,15 @@ function from (options) {
 /**
  * If format is not provided, fallback to detecting `level-codec`
  * or `multiformats` encodings, else assume a format of buffer.
- * @param {EncodingOptions<any, any, any>} options
+ * @param {MixedEncoding<any, any, any>} options
  * @returns {string}
  */
-function detectFormat ({ format, buffer, code }) {
-  if (format !== undefined) {
-    return format
-  } else if (typeof buffer === 'boolean') {
-    return buffer ? 'buffer' : 'utf8' // level-codec
-  } else if (Number.isInteger(code)) {
+function detectFormat (options) {
+  if ('format' in options && options.format !== undefined) {
+    return options.format
+  } else if ('buffer' in options && typeof options.buffer === 'boolean') {
+    return options.buffer ? 'buffer' : 'utf8' // level-codec
+  } else if ('code' in options && Number.isInteger(options.code)) {
     return 'view' // multiformats
   } else {
     return 'buffer'
@@ -129,7 +135,7 @@ function detectFormat ({ format, buffer, code }) {
 }
 
 /**
- * @typedef {import('./lib/encoding').EncodingOptions<TIn,TFormat,TOut>} EncodingOptions
+ * @typedef {import('./lib/encoding').MixedEncoding<TIn,TFormat,TOut>} MixedEncoding
  * @template TIn, TFormat, TOut
  */
 
@@ -148,3 +154,5 @@ const lookup = {
   ...encodings,
   ...aliases
 }
+
+let anonymousCount = 0

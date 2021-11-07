@@ -1,7 +1,7 @@
 'use strict'
 
 const test = require('tape')
-const Transcoder = require('..')
+const { Transcoder } = require('..')
 const cow = [240, 159, 144, 132]
 
 test('encode view', function (t) {

@@ -1,7 +1,7 @@
 'use strict'
 
 const test = require('tape')
-const Transcoder = require('..')
+const { Transcoder } = require('..')
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 

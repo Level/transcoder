@@ -1,7 +1,8 @@
 'use strict'
 
 const test = require('tape')
-const Transcoder = require('..')
+const { Transcoder } = require('..')
+const identity = (v) => v
 
 test('Transcoder() throws if first argument is not an array', function (t) {
   t.plan(5 * 2)
@@ -166,7 +167,7 @@ test('transcoder.encoding() caches encodings', function (t) {
 })
 
 test('transcoder.encoding() sets format based on format, buffer or code option', function (t) {
-  const make = (opts) => new Transcoder(['buffer', 'view', 'utf8']).encoding(opts)
+  const make = (opts) => new Transcoder(['buffer', 'view', 'utf8']).encoding({ encode: identity, decode: identity, ...opts })
 
   t.is(make({ buffer: true }).format, 'buffer')
   t.is(make({ buffer: false }).format, 'utf8')
@@ -199,6 +200,28 @@ test('transcoder.encoding() throws if format is not buffer, view or utf8', funct
     t.is(err.name, 'TypeError')
     t.is(err.message, "Format must be one of 'buffer', 'view', 'utf8'")
   }
+})
+
+test('transcoder.encoding() sets name based on name option or legacy type option', function (t) {
+  const [encode, decode, format] = [identity, identity, 'view']
+  const make = (opts) => new Transcoder([format]).encoding({ encode, decode, format, ...opts })
+
+  t.is(make({ name: 'test' }).name, 'test')
+  t.is(make({ type: 'test' }).name, 'test')
+  t.is(make({ name: 'test', type: 'ignored' }).name, 'test')
+  t.is(make({ type: 'ignored', name: 'test' }).name, 'test')
+  t.is(make({ name: undefined, type: 'test' }).name, 'test')
+  t.is(make({ name: 'test', type: undefined }).name, 'test')
+
+  t.ok(/^anonymous-\d+$/.test(make({}).name))
+  t.ok(/^anonymous-\d+$/.test(make({ name: undefined }).name))
+  t.ok(/^anonymous-\d+$/.test(make({ type: undefined }).name))
+
+  for (const ignored of [0, 1, {}, () => {}, null]) {
+    t.ok(/^anonymous-\d+$/.test(make({ type: ignored }).name), 'ignores invalid type option')
+  }
+
+  t.end()
 })
 
 test('transcoder.encoding() wraps custom anonymous encoding', function (t) {

@@ -1,7 +1,7 @@
 'use strict'
 
 const test = require('tape')
-const Transcoder = require('..')
+const { Transcoder } = require('..')
 const cow = [240, 159, 144, 132]
 
 test('encode utf8', function (t) {
@@ -62,5 +62,13 @@ test('decode utf8+view', function (t) {
 
   t.is(encoding.decode(Uint8Array.from([54, ...cow])), '6🐄')
   t.is(encoding.decode(Buffer.from('6🐄')), '6🐄')
+  t.end()
+})
+
+test('createUTF8Transcoder() returns this', function (t) {
+  const transcoder = new Transcoder(['utf8'])
+  const encoding = transcoder.encoding('utf8')
+
+  t.is(encoding.createUTF8Transcoder(), encoding)
   t.end()
 })

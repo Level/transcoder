@@ -16,7 +16,7 @@
 Create a transcoder, passing a desired format:
 
 ```js
-const Transcoder = require('level-transcoder')
+const { Transcoder } = require('level-transcoder')
 
 const transcoder1 = new Transcoder(['view'])
 const transcoder2 = new Transcoder(['buffer'])
@@ -163,7 +163,7 @@ Name of the (lower-level) encoding used by the return value of `encode()`. One o
 Custom encodings must follow the following interface:
 
 ```ts
-interface EncodingOptions<TIn, TFormat, TOut> {
+interface IEncoding<TIn, TFormat, TOut> {
   name: string
   format: 'buffer' | 'view' | 'utf8'
   encode: (data: TIn) => TFormat

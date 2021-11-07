@@ -1,7 +1,7 @@
 'use strict'
 
 const test = require('tape')
-const Transcoder = require('..')
+const { Transcoder } = require('..')
 
 test('encode hex', function (t) {
   const transcoder = new Transcoder(['buffer'])

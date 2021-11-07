@@ -2,74 +2,56 @@
 
 const test = require('tape')
 const { Encoding } = require('../lib/encoding')
+const identity = (v) => v
 
-test('Encoding() throws on invalid encode or decode option', function (t) {
+test('Encoding() throws on invalid encode or decode property', function (t) {
   t.plan(2 * 6 * 2)
 
   for (const opt of ['encode', 'decode']) {
     for (const invalid of [true, false, null, '', 'x', {}]) {
       try {
         // eslint-disable-next-line no-new
-        new Encoding({ [opt]: invalid })
+        new Encoding({ encode: identity, decode: identity, name: 'x', format: 'utf8', [opt]: invalid })
       } catch (err) {
         t.is(err.name, 'TypeError', 'is a TypeError')
-        t.is(err.message, `The '${opt}' option must be a function or undefined`, 'correct message')
+        t.is(err.message, `The '${opt}' property must be a function`, 'correct message')
       }
     }
   }
 })
 
-test('Encoding() throws on invalid format option', function (t) {
+test('Encoding() throws on invalid format property', function (t) {
   t.plan(4 * 2)
 
   for (const invalid of ['binary', null, undefined, 123]) {
     try {
       // eslint-disable-next-line no-new
-      new Encoding({ format: invalid })
+      new Encoding({ encode: identity, decode: identity, name: 'x', format: invalid })
     } catch (err) {
       t.is(err.name, 'TypeError', 'is a TypeError')
-      t.is(err.message, "The 'format' option must be one of 'buffer', 'view', 'utf8'", 'correct message')
+      t.is(err.message, "The 'format' property must be one of 'buffer', 'view', 'utf8'", 'correct message')
     }
   }
 })
 
-test('Encoding() throws on invalid name option', function (t) {
-  t.plan(6 * 2)
+test('Encoding() throws on invalid name property', function (t) {
+  t.plan(7 * 2)
 
-  for (const invalid of [true, false, null, {}, () => {}, []]) {
+  for (const invalid of ['', true, false, null, {}, () => {}, []]) {
     try {
       // eslint-disable-next-line no-new
-      new Encoding({ name: invalid })
+      new Encoding({ encode: identity, decode: identity, format: 'utf8', name: invalid })
     } catch (err) {
       t.is(err.name, 'TypeError', 'is a TypeError')
-      t.is(err.message, "The 'name' option must be a string or undefined", 'correct message')
+      t.is(err.message, "The 'name' property must be a string", 'correct message')
     }
   }
-})
-
-test('Encoding() sets name based on name option or legacy type option', function (t) {
-  t.is(new Encoding({ format: 'view', name: 'test' }).name, 'test')
-  t.is(new Encoding({ format: 'view', type: 'test' }).name, 'test')
-  t.is(new Encoding({ format: 'view', name: 'test', type: 'ignored' }).name, 'test')
-  t.is(new Encoding({ format: 'view', type: 'ignored', name: 'test' }).name, 'test')
-  t.is(new Encoding({ format: 'view', name: undefined, type: 'test' }).name, 'test')
-  t.is(new Encoding({ format: 'view', name: 'test', type: undefined }).name, 'test')
-
-  t.ok(/^anonymous-\d+$/.test(new Encoding({ format: 'view' }).name))
-  t.ok(/^anonymous-\d+$/.test(new Encoding({ format: 'view', name: undefined }).name))
-  t.ok(/^anonymous-\d+$/.test(new Encoding({ format: 'view', type: undefined }).name))
-
-  for (const ignored of [0, 1, {}, () => {}, null]) {
-    t.ok(/^anonymous-\d+$/.test(new Encoding({ format: 'view', type: ignored }).name), 'ignores invalid type option')
-  }
-
-  t.end()
 })
 
 test('encoding.createXTranscoder() throws on unsupported format', function (t) {
-  t.plan(4)
+  t.plan(6)
 
-  const encoding = new Encoding({ name: 'test', format: 'buffer' })
+  const encoding = new Encoding({ encode: identity, decode: identity, name: 'test', format: 'buffer' })
 
   try {
     encoding.createViewTranscoder()
@@ -84,4 +66,28 @@ test('encoding.createXTranscoder() throws on unsupported format', function (t) {
     t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
     t.is(err.message, "Encoding 'test' cannot be transcoded to 'buffer'")
   }
+
+  try {
+    encoding.createUTF8Transcoder()
+  } catch (err) {
+    t.is(err.code, 'LEVEL_ENCODING_NOT_SUPPORTED')
+    t.is(err.message, "Encoding 'test' cannot be transcoded to 'utf8'")
+  }
+})
+
+test('can create utf8 transcoder', function (t) {
+  t.plan(2)
+
+  const encoding = new Encoding({
+    encode: identity,
+    decode: identity,
+    name: 'test',
+    format: 'buffer',
+    createUTF8Transcoder () {
+      t.pass('called')
+      return new Encoding({ encode: identity, decode: identity, name: 'test+utf8', format: 'utf8' })
+    }
+  })
+
+  t.is(encoding.createUTF8Transcoder().name, 'test+utf8')
 })
