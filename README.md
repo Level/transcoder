@@ -1,6 +1,6 @@
 # level-transcoder
 
-**Encode data with built-in or custom encodings.** The successor to [`level-codec`][level-codec] that transcodes encodings from and to internal data formats supported by a database. This allows a database to store data in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of known encodings. That includes other encoding interfaces in the ecosystem like [`codecs`][mafintosh-codecs], [`abstract-encoding`][abstract-enc] and [`multiformats`][blockcodec].
+**Encode data with built-in or custom encodings.** The successor to [`level-codec`][level-codec] that transcodes encodings from and to internal data formats supported by a database. This allows a database to store data in a format of its choice (Buffer, Uint8Array or String) with zero-effort support of known encodings. That includes other encoding interfaces in the ecosystem like [`abstract-encoding`][abstract-enc] and [`multiformats`][blockcodec].
 
 [![level badge][level-badge]](https://github.com/Level/awesome)
 [![npm](https://img.shields.io/npm/v/level-transcoder.svg)](https://www.npmjs.com/package/level-transcoder)
@@ -101,10 +101,8 @@ Various modules in the ecosystem, in and outside of Level, can be used with `lev
 | [`charwise`][charwise]                     | `utf8`           | [`level-codec`][level-codec]        | ✅     |
 | [`bytewise`][bytewise]                     | `buffer`         | [`level-codec`][level-codec]        | ✅     |
 | [`lexicographic-integer-encoding`][lexint] | `buffer`, `utf8` | [`level-codec`][level-codec]        | ✅     |
-| [`codecs`][mafintosh-codecs]               | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅     |
 | [`abstract-encoding`][abstract-enc]        | `buffer`         | [`abstract-encoding`][abstract-enc] | ❌     |
 | [`multiformats`][js-multiformats]          | `view`           | [`multiformats`][blockcodec]        | ✅     |
-| [`base32-codecs`][base32-codecs]           | `buffer`         | [`codecs`][mafintosh-codecs]        | ✅     |
 
 Those marked as not named are modules that export or generate encodings that don't have a `name` property (or `type` as an alias). We call these _anonymous encodings_. They can only be used as objects and not by name. Passing an anonymous encoding through `Transcoder#encoding()` does give it a `name` property for compatibility, but the value of `name` is not deterministic.
 
@@ -121,7 +119,7 @@ Create a new transcoder, providing the formats that are supported by a database 
 Returns the given `encoding` argument as a normalized encoding object that follows the `level-transcoder` encoding interface. The `encoding` argument may be:
 
 - A string to select a known encoding by its name
-- An object that follows one of the following interfaces: [`level-transcoder`](#encoding-interface), [`level-codec`](https://github.com/Level/codec#encoding-format), [`codecs`][mafintosh-codecs], [`abstract-encoding`][abstract-enc], [`multiformats`][blockcodec]
+- An object that follows one of the following interfaces: [`level-transcoder`](#encoding-interface), [`level-codec`](https://github.com/Level/codec#encoding-format), [`abstract-encoding`][abstract-enc], [`multiformats`][blockcodec]
 - A previously normalized encoding, such that `encoding(x)` equals `encoding(encoding(x))`.
 
 Results are cached. If the `encoding` argument is an object and it has a name then subsequent calls can refer to that encoding by name.
@@ -209,12 +207,8 @@ Support us with a monthly donation on [Open Collective](https://opencollective.c
 
 [lexint]: https://github.com/vweevers/lexicographic-integer-encoding
 
-[mafintosh-codecs]: https://github.com/mafintosh/codecs
-
 [abstract-enc]: https://github.com/mafintosh/abstract-encoding
 
 [js-multiformats]: https://github.com/multiformats/js-multiformats
 
 [blockcodec]: https://github.com/multiformats/js-multiformats/blob/master/src/codecs/interface.ts
-
-[base32-codecs]: https://github.com/consento-org/base32-codecs
