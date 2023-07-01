@@ -24,7 +24,7 @@
     "module-error": "^1.0.1"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
+    "@types/node": "^20.3.3",
     "@voxpelli/tsconfig": "^4.0.0",
     "airtap": "^4.0.3",
     "airtap-playwright": "^1.0.1",
