@@ -28,7 +28,7 @@
     "@voxpelli/tsconfig": "^4.0.0",
     "airtap": "^4.0.3",
     "airtap-playwright": "^1.0.1",
-    "hallmark": "^4.0.0",
+    "hallmark": "^5.0.1",
     "nyc": "^15.1.0",
     "standard": "^17.0.0",
     "tape": "^5.3.2",
