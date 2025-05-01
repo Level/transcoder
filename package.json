@@ -26,7 +26,7 @@
   "devDependencies": {
     "@types/node": "^20.4.5",
     "@voxpelli/tsconfig": "^4.0.0",
-    "airtap": "^4.0.3",
+    "airtap": "^5.0.0",
     "airtap-playwright": "^1.0.1",
     "hallmark": "^4.0.0",
     "nyc": "^15.1.0",
