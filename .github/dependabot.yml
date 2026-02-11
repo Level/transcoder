@@ -5,7 +5,11 @@ updates:
     schedule:
       interval: monthly
     ignore:
-      - dependency-name: dependency-check
+      - dependency-name: "@types/node"
+      - dependency-name: "@voxpelli/tsconfig"
+      - dependency-name: hallmark
+      - dependency-name: standard
+      - dependency-name: typescript
   - package-ecosystem: github-actions
     directory: /
     schedule:
